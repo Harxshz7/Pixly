@@ -217,9 +217,11 @@ body {
   padding: 16px;
   font-size: 14px;
   line-height: 1.7;
-  white-space: pre-wrap;
   word-wrap: break-word;
+  overflow-wrap: break-word;
   font-family: var(--px-font);
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
 }
 
 .result-actions {
@@ -392,6 +394,20 @@ body {
   border: none;
   border-top: 1px solid var(--px-border);
   margin: 16px 0;
+}
+
+/* ─── Draw Box Button ──────────────────────────────────────────── */
+
+.draw-box-btn {
+  font-size: 13px;
+  gap: 8px;
+}
+
+.shortcut-hint {
+  font-size: 10px;
+  font-family: var(--px-font-mono);
+  opacity: 0.6;
+  margin-left: 4px;
 }
 
 /* ─── Scrollbar ─────────────────────────────────────────────────── */

@@ -9,12 +9,12 @@
  */
 
 import { MESSAGE_TYPES, CONTEXT_MENU_IDS } from '../lib/utils/constants.js'
-import { aiComplete, aiCompleteStream } from '../lib/ai/client.js'
+import { aiCompleteStream } from '../lib/ai/client.js'
 import { buildTextExplainPrompt } from '../lib/ai/prompts/text-explain.js'
 import { buildImageAnalyzePrompt, buildScreenshotAnalyzePrompt } from '../lib/ai/prompts/image-analyze.js'
 import { buildUIRecreatePrompt } from '../lib/ai/prompts/ui-recreate.js'
 import { imageUrlToDataUrl, compressImage } from '../lib/capture/image-utils.js'
-import { captureVisibleTab } from '../lib/capture/screenshot.js'
+import { captureVisibleTab, captureRegion } from '../lib/capture/screenshot.js'
 import { isConfigured } from '../lib/storage/settings.js'
 
 // ─── Context Menu Setup ───────────────────────────────────────────────────────
@@ -31,6 +31,22 @@ chrome.runtime.onInstalled.addListener(() => {
     title: 'Pixly: Analyze this image',
     contexts: ['image'],
   })
+})
+
+// ─── Keyboard Shortcut Handler ───────────────────────────────────────────────
+
+chrome.commands.onCommand.addListener(async (command) => {
+  if (command === 'draw-box') {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    if (tab?.id) {
+      try {
+        await chrome.sidePanel.open({ tabId: tab.id })
+      } catch (e) {}
+      chrome.tabs.sendMessage(tab.id, {
+        type: MESSAGE_TYPES.START_DRAW_BOX,
+      })
+    }
+  }
 })
 
 // ─── Context Menu Click Handler ──────────────────────────────────────────────
@@ -179,12 +195,10 @@ async function handleAnalyzeImage(message) {
     try {
       await chrome.sidePanel.open({ tabId: tab.id })
     } catch (e) {}
-
-    chrome.runtime.sendMessage({
-      type: 'pixly:loading',
-      action: 'analyze-image',
-    })
   }
+
+  const source = { type: 'image', url: imageUrl }
+  const action = 'analyze-image'
 
   try {
     // Fetch and compress the image
@@ -198,13 +212,30 @@ async function handleAnalyzeImage(message) {
     dataUrl = await compressImage(dataUrl)
 
     const prompt = buildImageAnalyzePrompt(imageUrl, altText)
-    const result = await aiComplete(prompt, dataUrl)
+
+    // Notify side panel that streaming is starting
+    chrome.runtime.sendMessage({
+      type: MESSAGE_TYPES.AI_STREAM_START,
+      action,
+      source,
+    })
+
+    // Stream tokens to side panel
+    let fullResult = ''
+    for await (const token of aiCompleteStream(prompt, dataUrl)) {
+      fullResult += token
+      chrome.runtime.sendMessage({
+        type: MESSAGE_TYPES.AI_STREAM_TOKEN,
+        token,
+        action,
+      })
+    }
 
     chrome.runtime.sendMessage({
-      type: MESSAGE_TYPES.AI_RESULT,
-      result,
-      action: 'analyze-image',
-      source: { type: 'image', url: imageUrl },
+      type: MESSAGE_TYPES.AI_STREAM_END,
+      result: fullResult,
+      action,
+      source,
     })
 
     return { ok: true }
@@ -212,7 +243,7 @@ async function handleAnalyzeImage(message) {
     chrome.runtime.sendMessage({
       type: MESSAGE_TYPES.AI_ERROR,
       error: err.message,
-      action: 'analyze-image',
+      action,
     })
     return { error: err.message }
   }
@@ -226,22 +257,35 @@ async function handleRecreateUI(message) {
     try {
       await chrome.sidePanel.open({ tabId: tab.id })
     } catch (e) {}
-
-    chrome.runtime.sendMessage({
-      type: 'pixly:loading',
-      action: 'recreate-ui',
-    })
   }
+
+  const source = { type: 'screenshot' }
+  const action = 'recreate-ui'
 
   try {
     const prompt = buildUIRecreatePrompt(description)
-    const result = await aiComplete(prompt, dataUrl)
 
     chrome.runtime.sendMessage({
-      type: MESSAGE_TYPES.AI_RESULT,
-      result,
-      action: 'recreate-ui',
-      source: { type: 'screenshot' },
+      type: MESSAGE_TYPES.AI_STREAM_START,
+      action,
+      source,
+    })
+
+    let fullResult = ''
+    for await (const token of aiCompleteStream(prompt, dataUrl)) {
+      fullResult += token
+      chrome.runtime.sendMessage({
+        type: MESSAGE_TYPES.AI_STREAM_TOKEN,
+        token,
+        action,
+      })
+    }
+
+    chrome.runtime.sendMessage({
+      type: MESSAGE_TYPES.AI_STREAM_END,
+      result: fullResult,
+      action,
+      source,
     })
 
     return { ok: true }
@@ -249,7 +293,7 @@ async function handleRecreateUI(message) {
     chrome.runtime.sendMessage({
       type: MESSAGE_TYPES.AI_ERROR,
       error: err.message,
-      action: 'recreate-ui',
+      action,
     })
     return { error: err.message }
   }
@@ -264,9 +308,7 @@ async function handleOpenSidePanel(sender) {
     }
   }
   return { ok: true }
-}
-
-async function handleScreenshotArea(message, sender) {
+}async function handleScreenshotArea(message, sender) {
   const { region, pageUrl, pageTitle } = message
 
   const tab = await getActiveTab()
@@ -274,53 +316,38 @@ async function handleScreenshotArea(message, sender) {
     try {
       await chrome.sidePanel.open({ tabId: tab.id })
     } catch (e) {}
-
-    chrome.runtime.sendMessage({
-      type: 'pixly:loading',
-      action: 'screenshot-area',
-    })
   }
 
+  const source = { type: 'screenshot', region }
+  const action = 'screenshot-area'
+
   try {
-    // Capture full visible tab
-    const screenshotDataUrl = await captureVisibleTab()
-
-    // Load the image to crop it
-    const dataUrl = await new Promise((resolve, reject) => {
-      const img = new Image()
-      img.onload = () => {
-        const canvas = new OffscreenCanvas(
-          Math.round(region.width),
-          Math.round(region.height)
-        )
-        const ctx = canvas.getContext('2d')
-        ctx.drawImage(
-          img,
-          region.viewportX, region.viewportY,
-          region.width, region.height,
-          0, 0,
-          region.width, region.height
-        )
-
-        canvas.convertToBlob({ type: 'image/png' }).then((blob) => {
-          const reader = new FileReader()
-          reader.onloadend = () => resolve(reader.result)
-          reader.onerror = reject
-          reader.readAsDataURL(blob)
-        })
-      }
-      img.onerror = () => reject(new Error('Failed to load screenshot'))
-      img.src = screenshotDataUrl
-    })
+    // Capture and crop the region using OffscreenCanvas (service-worker safe)
+    const dataUrl = await captureRegion(region)
 
     const prompt = buildScreenshotAnalyzePrompt()
-    const result = await aiComplete(prompt, dataUrl)
 
     chrome.runtime.sendMessage({
-      type: MESSAGE_TYPES.AI_RESULT,
-      result,
-      action: 'screenshot-area',
-      source: { type: 'screenshot', region },
+      type: MESSAGE_TYPES.AI_STREAM_START,
+      action,
+      source,
+    })
+
+    let fullResult = ''
+    for await (const token of aiCompleteStream(prompt, dataUrl)) {
+      fullResult += token
+      chrome.runtime.sendMessage({
+        type: MESSAGE_TYPES.AI_STREAM_TOKEN,
+        token,
+        action,
+      })
+    }
+
+    chrome.runtime.sendMessage({
+      type: MESSAGE_TYPES.AI_STREAM_END,
+      result: fullResult,
+      action,
+      source,
     })
 
     return { ok: true }
@@ -328,7 +355,7 @@ async function handleScreenshotArea(message, sender) {
     chrome.runtime.sendMessage({
       type: MESSAGE_TYPES.AI_ERROR,
       error: err.message,
-      action: 'screenshot-area',
+      action,
     })
     return { error: err.message }
   }

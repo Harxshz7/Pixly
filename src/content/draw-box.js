@@ -147,11 +147,14 @@ function onMouseUp(e) {
     return
   }
 
+  // Capture callbacks before cleanup nullifies them
+  const complete = onComplete
+
   cleanup()
 
   // Convert to page coordinates (account for scroll)
-  if (onComplete) {
-    onComplete({
+  if (complete) {
+    complete({
       x: x + window.scrollX,
       y: y + window.scrollY,
       width: w,

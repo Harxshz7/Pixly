@@ -1,7 +1,23 @@
-// Pixly Phase 1 — Screenshot capture via chrome.tabCapture / scripting
+// Pixly Phase 1 — Screenshot capture via chrome.tabs.captureVisibleTab
+// Compatible with service worker (no FileReader, no window)
 
-import { MESSAGE_TYPES } from '../utils/constants.js'
-import { sendToTab } from '../utils/messaging.js'
+/**
+ * Convert a Blob to a base64 data URL (service-worker safe)
+ * @param {Blob} blob
+ * @returns {Promise<string>}
+ */
+function blobToDataUrl(blob) {
+  return blob.arrayBuffer().then((buf) => {
+    const bytes = new Uint8Array(buf)
+    let binary = ''
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i])
+    }
+    const base64 = btoa(binary)
+    const mime = blob.type || 'image/png'
+    return `data:${mime};base64,${base64}`
+  })
+}
 
 /**
  * Capture the current visible tab as a screenshot
@@ -22,63 +38,60 @@ export async function captureVisibleTab() {
 
 /**
  * Capture the current active tab and crop to the given region
- * @param {{ x: number, y: number, width: number, height: number }} region - Page coordinates
+ * Uses OffscreenCanvas — works in service worker.
+ *
+ * @param {{ x: number, y: number, width: number, height: number }} region - Viewport coordinates
  * @returns {Promise<string>} Data URL of the cropped screenshot
  */
 export async function captureRegion(region) {
-  // First, get the full page screenshot
   const fullScreenshot = await captureVisibleTab()
 
-  // Then crop it using canvas in a content script or offscreen
-  // Since we can't do canvas operations in the service worker, we send
-  // the screenshot to the content script for cropping
-  const activeTab = await getActiveTab()
-  if (!activeTab) throw new Error('No active tab')
+  // Decode the data URL into a blob, then into a bitmap
+  const imgBlob = dataUrlToBlob(fullScreenshot)
+  const bitmap = await createImageBitmap(imgBlob)
 
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => {
-      const canvas = new OffscreenCanvas(img.width, img.height)
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0)
+  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
+  const ctx = canvas.getContext('2d')
+  ctx.drawImage(bitmap, 0, 0)
+  bitmap.close()
 
-      // Account for device pixel ratio
-      const dpr = window.devicePixelRatio || 1
+  // Crop to the selected region
+  const croppedCanvas = new OffscreenCanvas(
+    Math.round(region.width),
+    Math.round(region.height)
+  )
+  const croppedCtx = croppedCanvas.getContext('2d')
+  croppedCtx.drawImage(
+    canvas,
+    Math.round(region.viewportX || region.x),
+    Math.round(region.viewportY || region.y),
+    Math.round(region.width),
+    Math.round(region.height),
+    0, 0,
+    Math.round(region.width),
+    Math.round(region.height)
+  )
 
-      const croppedCanvas = new OffscreenCanvas(
-        Math.round(region.width * dpr),
-        Math.round(region.height * dpr)
-      )
-      const croppedCtx = croppedCanvas.getContext('2d')
-      croppedCtx.drawImage(
-        canvas,
-        Math.round(region.x * dpr),
-        Math.round(region.y * dpr),
-        Math.round(region.width * dpr),
-        Math.round(region.height * dpr),
-        0, 0,
-        Math.round(region.width * dpr),
-        Math.round(region.height * dpr)
-      )
-
-      croppedCanvas.convertToBlob({ type: 'image/png' }).then((blob) => {
-        const reader = new FileReader()
-        reader.onloadend = () => resolve(reader.result)
-        reader.onerror = reject
-        reader.readAsDataURL(blob)
-      })
-    }
-    img.onerror = () => reject(new Error('Failed to load screenshot'))
-    img.src = fullScreenshot
-  })
+  const blob = await croppedCanvas.convertToBlob({ type: 'image/png' })
+  return blobToDataUrl(blob)
 }
 
 /**
- * Get the current active tab
+ * Convert a data URL to a Blob (service-worker safe)
+ * @param {string} dataUrl
+ * @returns {Blob}
  */
-async function getActiveTab() {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-  return tab || null
+function dataUrlToBlob(dataUrl) {
+  const match = dataUrl.match(/^data:(image\/\w+);base64,(.+)$/)
+  if (!match) throw new Error('Invalid data URL format')
+  const mime = match[1]
+  const base64 = match[2]
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return new Blob([bytes], { type: mime })
 }
 
 /**
