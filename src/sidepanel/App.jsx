@@ -2,13 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react'
 import ResultView from './components/ResultView.jsx'
 import LoadingState from './components/LoadingState.jsx'
 import { MESSAGE_TYPES } from '../lib/utils/constants.js'
-import { isConfigured, getAllSettings } from '../lib/storage/settings.js'
-import { aiComplete } from '../lib/ai/client.js'
-import { buildTextExplainPrompt } from '../lib/ai/prompts/text-explain.js'
-import { buildImageAnalyzePrompt, buildScreenshotAnalyzePrompt } from '../lib/ai/prompts/image-analyze.js'
-import { buildUIRecreatePrompt } from '../lib/ai/prompts/ui-recreate.js'
-import { imageUrlToDataUrl, compressImage } from '../lib/capture/image-utils.js'
-import { captureVisibleTab } from '../lib/capture/screenshot.js'
 
 export default function App() {
   const [loading, setLoading] = useState(false)
@@ -17,14 +10,6 @@ export default function App() {
   const [resultAction, setResultAction] = useState(null)
   const [resultSource, setResultSource] = useState(null)
   const [error, setError] = useState(null)
-  const [configured, setConfigured] = useState(true) // assume true until checked
-  const [manualText, setManualText] = useState('')
-  const [manualUrl, setManualUrl] = useState('')
-
-  // Check configuration on mount
-  useEffect(() => {
-    checkConfig()
-  }, [])
 
   // Listen for messages from background service worker
   useEffect(() => {
@@ -51,68 +36,8 @@ export default function App() {
     return () => chrome.runtime.onMessage.removeListener(listener)
   }, [])
 
-  async function checkConfig() {
-    try {
-      const settings = await isConfigured()
-      setConfigured(settings)
-    } catch {
-      setConfigured(false)
-    }
-  }
-
   const openOptions = useCallback(() => {
     chrome.runtime.openOptionsPage()
-  }, [])
-
-  const startDrawBox = useCallback(async () => {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-    if (tab?.id) {
-      chrome.tabs.sendMessage(tab.id, { type: MESSAGE_TYPES.START_DRAW_BOX })
-    }
-  }, [])
-
-  const handleManualSubmit = useCallback(async () => {
-    if (!manualText.trim()) return
-
-    setLoading(true)
-    setLoadingAction('explain-text')
-    setError(null)
-
-    try {
-      const prompt = buildTextExplainPrompt(manualText.trim())
-      const result = await aiComplete(prompt)
-      setLoading(false)
-      setLoadingAction(null)
-      setResult(result)
-      setResultAction('explain-text')
-      setResultSource({ type: 'text', content: manualText.trim() })
-    } catch (err) {
-      setLoading(false)
-      setLoadingAction(null)
-      setError(err.message)
-    }
-  }, [manualText])
-
-  const handleScreenshotAnalyze = useCallback(async () => {
-    setLoading(true)
-    setLoadingAction('screenshot-area')
-    setError(null)
-
-    try {
-      const screenshot = await captureVisibleTab()
-      const compressed = await compressImage(screenshot)
-      const prompt = buildScreenshotAnalyzePrompt()
-      const result = await aiComplete(prompt, compressed)
-      setLoading(false)
-      setLoadingAction(null)
-      setResult(result)
-      setResultAction('screenshot-area')
-      setResultSource({ type: 'screenshot' })
-    } catch (err) {
-      setLoading(false)
-      setLoadingAction(null)
-      setError(err.message)
-    }
   }, [])
 
   const handleNewAnalysis = useCallback(() => {
@@ -120,10 +45,10 @@ export default function App() {
     setResultAction(null)
     setResultSource(null)
     setError(null)
-    setManualText('')
   }, [])
 
-  // ─── Render ─────────────────────────────────────────────────────
+  // Determine current state
+  const state = loading ? 'loading' : error ? 'error' : result ? 'result' : 'idle'
 
   return (
     <div className="app">
@@ -136,7 +61,7 @@ export default function App() {
           Pixly
         </div>
         <div className="app-actions">
-          {result && (
+          {state === 'result' && (
             <button className="btn-icon" onClick={handleNewAnalysis} title="New analysis">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -153,134 +78,39 @@ export default function App() {
         </div>
       </header>
 
-      {/* Content */}
+      {/* Content — single area that switches by state */}
       <main className="app-content">
-        {/* Not configured state */}
-        {!configured && !loading && !result && (
-          <div className="settings-prompt">
+        {state === 'idle' && (
+          <div className="empty-state">
+            <div className="empty-state-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+              </svg>
+            </div>
+            <h2>Waiting for selection</h2>
             <p>
-              Add your API key to get started with Pixly.
+              Select text on any page and click the ⚡ button, or right-click to use Pixly.
             </p>
-            <button className="btn btn-primary" onClick={openOptions}>
-              Open Settings
-            </button>
           </div>
         )}
 
-        {/* Loading */}
-        {loading && <LoadingState action={loadingAction} />}
+        {state === 'loading' && (
+          <LoadingState action={loadingAction} />
+        )}
 
-        {/* Error */}
-        {error && !loading && (
+        {state === 'error' && (
           <div className="error-state">
             <strong>Something went wrong</strong>
             {error}
           </div>
         )}
 
-        {/* Result */}
-        {!loading && result && (
+        {state === 'result' && (
           <ResultView
             result={result}
             action={resultAction}
             source={resultSource}
           />
-        )}
-
-        {/* Action buttons (shown when idle) */}
-        {!loading && !result && configured && (
-          <>
-            <div className="action-buttons">
-              <button className="action-btn" onClick={handleScreenshotAnalyze}>
-                <div className="action-btn-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                    <circle cx="12" cy="13" r="4" />
-                  </svg>
-                </div>
-                Capture Page
-              </button>
-
-              <button className="action-btn" onClick={startDrawBox}>
-                <div className="action-btn-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeDasharray="5 3" />
-                    <line x1="3" y1="9" x2="21" y2="9" />
-                    <line x1="9" y1="21" x2="9" y2="9" />
-                  </svg>
-                </div>
-                Draw Box
-              </button>
-
-              <button className="action-btn" onClick={() => document.getElementById('manual-input')?.focus()}>
-                <div className="action-btn-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="4 7 4 4 20 4 20 7" />
-                    <line x1="9" y1="20" x2="15" y2="20" />
-                    <line x1="12" y1="4" x2="12" y2="20" />
-                  </svg>
-                </div>
-                Paste Text
-              </button>
-            </div>
-
-            {/* Manual text input */}
-            <div style={{ marginTop: 8 }}>
-              <textarea
-                id="manual-input"
-                className="btn-secondary"
-                placeholder="Or paste text here to explain..."
-                value={manualText}
-                onChange={(e) => setManualText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                    handleManualSubmit()
-                  }
-                }}
-                style={{
-                  width: '100%',
-                  minHeight: 80,
-                  padding: 12,
-                  background: 'var(--px-bg-secondary)',
-                  border: '1px solid var(--px-border)',
-                  borderRadius: 'var(--px-radius)',
-                  color: 'var(--px-text)',
-                  fontFamily: 'var(--px-font)',
-                  fontSize: 13,
-                  resize: 'vertical',
-                  outline: 'none',
-                }}
-              />
-              {manualText.trim() && (
-                <button
-                  className="btn btn-primary"
-                  onClick={handleManualSubmit}
-                  style={{ marginTop: 8, width: '100%' }}
-                >
-                  Explain Text
-                </button>
-              )}
-            </div>
-
-            {/* Instructions */}
-            <div style={{
-              marginTop: 16,
-              padding: 12,
-              background: 'var(--px-bg-secondary)',
-              borderRadius: 'var(--px-radius)',
-              fontSize: 12,
-              color: 'var(--px-text-muted)',
-              lineHeight: 1.6,
-            }}>
-              <strong style={{ color: 'var(--px-text-secondary)' }}>Quick actions:</strong>
-              <br />
-              • Select text on any page → click the ⚡ button
-              <br />
-              • Right-click → Pixly: Explain / Analyze
-              <br />
-              • Use Draw Box to capture a UI section
-            </div>
-          </>
         )}
       </main>
     </div>

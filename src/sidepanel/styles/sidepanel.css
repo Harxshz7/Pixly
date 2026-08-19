@@ -1,22 +1,20 @@
-/* Pixly Phase 1 — Side Panel Styles */
+/* Pixly — Side Panel Styles (Phase 1)
+   Minimal dark theme. Plain CSS, no framework libraries. */
 
 :root {
   --px-bg: #0f0f11;
-  --px-bg-secondary: #1a1a1e;
-  --px-bg-tertiary: #242428;
+  --px-bg-card: #1a1a1e;
   --px-border: #2a2a2e;
   --px-text: #e8e8ec;
-  --px-text-secondary: #9393a0;
-  --px-text-muted: #6b6b78;
+  --px-text-dim: #9393a0;
   --px-primary: #6366f1;
   --px-primary-hover: #4f46e5;
   --px-primary-soft: rgba(99, 102, 241, 0.12);
   --px-success: #22c55e;
   --px-error: #ef4444;
   --px-radius: 8px;
-  --px-radius-lg: 12px;
-  --px-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-  --px-font-mono: "SF Mono", "Fira Code", "Fira Mono", Menlo, monospace;
+  --px-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --px-font-mono: "SF Mono", "Fira Code", Menlo, monospace;
 }
 
 * {
@@ -35,12 +33,10 @@ body {
 }
 
 #root {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
 }
 
-/* ─── App Layout ─────────────────────────────────────────────────── */
+/* ─── Layout ────────────────────────────────────────────────────── */
 
 .app {
   display: flex;
@@ -66,11 +62,6 @@ body {
   color: var(--px-primary);
 }
 
-.app-logo svg {
-  width: 20px;
-  height: 20px;
-}
-
 .app-actions {
   display: flex;
   gap: 4px;
@@ -82,7 +73,7 @@ body {
   padding: 16px;
 }
 
-/* ─── Empty State ─────────────────────────────────────────────────── */
+/* ─── Empty / Idle State ────────────────────────────────────────── */
 
 .empty-state {
   display: flex;
@@ -92,14 +83,14 @@ body {
   height: 100%;
   text-align: center;
   padding: 32px 24px;
-  color: var(--px-text-secondary);
+  color: var(--px-text-dim);
 }
 
 .empty-state-icon {
   width: 48px;
   height: 48px;
   background: var(--px-primary-soft);
-  border-radius: var(--px-radius-lg);
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -120,7 +111,7 @@ body {
   max-width: 280px;
 }
 
-/* ─── Loading State ──────────────────────────────────────────────── */
+/* ─── Loading State ─────────────────────────────────────────────── */
 
 .loading-state {
   display: flex;
@@ -145,11 +136,11 @@ body {
 
 .loading-state p {
   margin-top: 16px;
-  color: var(--px-text-secondary);
+  color: var(--px-text-dim);
   font-size: 13px;
 }
 
-/* ─── Result View ─────────────────────────────────────────────────── */
+/* ─── Result View ───────────────────────────────────────────────── */
 
 .result-view {
   animation: px-fade-in 0.2s ease;
@@ -161,9 +152,6 @@ body {
 }
 
 .result-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   margin-bottom: 16px;
 }
 
@@ -180,77 +168,22 @@ body {
 }
 
 .result-content {
-  background: var(--px-bg-secondary);
+  background: var(--px-bg-card);
   border: 1px solid var(--px-border);
-  border-radius: var(--px-radius-lg);
+  border-radius: var(--px-radius);
   padding: 16px;
   font-size: 14px;
   line-height: 1.7;
   white-space: pre-wrap;
   word-wrap: break-word;
-}
-
-.result-content h1,
-.result-content h2,
-.result-content h3 {
-  margin-top: 16px;
-  margin-bottom: 8px;
-  font-weight: 600;
-  color: var(--px-text);
-}
-
-.result-content h1 { font-size: 18px; }
-.result-content h2 { font-size: 15px; }
-.result-content h3 { font-size: 14px; }
-
-.result-content p {
-  margin-bottom: 8px;
-}
-
-.result-content ul,
-.result-content ol {
-  margin-bottom: 8px;
-  padding-left: 20px;
-}
-
-.result-content li {
-  margin-bottom: 4px;
-}
-
-.result-content strong {
-  color: var(--px-text);
-  font-weight: 600;
-}
-
-.result-content code {
-  font-family: var(--px-font-mono);
-  font-size: 12px;
-  background: var(--px-bg-tertiary);
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.result-content pre {
-  background: var(--px-bg);
-  border: 1px solid var(--px-border);
-  border-radius: var(--px-radius);
-  padding: 12px;
-  margin: 8px 0;
-  overflow-x: auto;
-}
-
-.result-content pre code {
-  background: none;
-  padding: 0;
+  font-family: var(--px-font);
 }
 
 .result-actions {
-  display: flex;
-  gap: 8px;
   margin-top: 16px;
 }
 
-/* ─── Buttons ──────────────────────────────────────────────────────── */
+/* ─── Buttons ────────────────────────────────────────────────────── */
 
 .btn {
   display: inline-flex;
@@ -264,8 +197,7 @@ body {
   font-weight: 500;
   border: none;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, transform 0.1s;
-  white-space: nowrap;
+  transition: background 0.15s;
 }
 
 .btn:active {
@@ -282,7 +214,7 @@ body {
 }
 
 .btn-secondary {
-  background: var(--px-bg-tertiary);
+  background: #242428;
   color: var(--px-text);
   border: 1px solid var(--px-border);
 }
@@ -297,7 +229,7 @@ body {
   padding: 0;
   border-radius: var(--px-radius);
   background: transparent;
-  color: var(--px-text-secondary);
+  color: var(--px-text-dim);
   border: none;
   cursor: pointer;
   display: flex;
@@ -307,63 +239,17 @@ body {
 }
 
 .btn-icon:hover {
-  background: var(--px-bg-tertiary);
+  background: #242428;
   color: var(--px-text);
 }
 
-/* ─── Action Buttons ──────────────────────────────────────────────── */
-
-.action-buttons {
-  display: flex;
-  gap: 8px;
-  padding: 12px 0;
-}
-
-.action-btn {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 12px 8px;
-  background: var(--px-bg-secondary);
-  border: 1px solid var(--px-border);
-  border-radius: var(--px-radius-lg);
-  color: var(--px-text-secondary);
-  cursor: pointer;
-  font-family: var(--px-font);
-  font-size: 11px;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-
-.action-btn:hover {
-  background: var(--px-bg-tertiary);
-  border-color: var(--px-primary);
-  color: var(--px-text);
-}
-
-.action-btn-icon {
-  width: 36px;
-  height: 36px;
-  background: var(--px-primary-soft);
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--px-primary);
-}
-
-/* ─── Copy Button ─────────────────────────────────────────────────── */
-
-.copy-btn {
-  position: relative;
-}
+/* ─── Copy Button ───────────────────────────────────────────────── */
 
 .copy-btn .copy-check {
   color: var(--px-success);
 }
 
-/* ─── Error State ─────────────────────────────────────────────────── */
+/* ─── Error State ───────────────────────────────────────────────── */
 
 .error-state {
   padding: 16px;
@@ -379,23 +265,7 @@ body {
   margin-bottom: 4px;
 }
 
-/* ─── Settings Prompt ─────────────────────────────────────────────── */
-
-.settings-prompt {
-  text-align: center;
-  padding: 16px;
-  background: var(--px-primary-soft);
-  border-radius: var(--px-radius);
-  margin-bottom: 16px;
-}
-
-.settings-prompt p {
-  font-size: 13px;
-  color: var(--px-text-secondary);
-  margin-bottom: 8px;
-}
-
-/* ─── Scrollbar ───────────────────────────────────────────────────── */
+/* ─── Scrollbar ─────────────────────────────────────────────────── */
 
 ::-webkit-scrollbar {
   width: 6px;
@@ -408,8 +278,4 @@ body {
 ::-webkit-scrollbar-thumb {
   background: var(--px-border);
   border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--px-text-muted);
 }
