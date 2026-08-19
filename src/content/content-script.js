@@ -18,7 +18,7 @@ import { MESSAGE_TYPES } from '../lib/utils/constants.js'
 initSelectionHandler()
 
 // Listen for the custom event from the selection floating button
-document.addEventListener('pixly:explain-text', (e) => {
+document.addEventListener('pixly:request-explain', (e) => {
   handleExplainText(e.detail.text)
 })
 

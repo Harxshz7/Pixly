@@ -14,7 +14,27 @@ export default function App() {
   // Listen for messages from background service worker
   useEffect(() => {
     const listener = (message) => {
-      if (message.type === MESSAGE_TYPES.AI_RESULT) {
+      if (message.type === MESSAGE_TYPES.AI_STREAM_START) {
+        // Streaming is starting — show streaming state with partial result
+        setLoading(false)
+        setLoadingAction(null)
+        setResult('')
+        setResultAction(message.action)
+        setResultSource(message.source)
+        setError(null)
+      } else if (message.type === MESSAGE_TYPES.AI_STREAM_TOKEN) {
+        // Append token to the result
+        setResult((prev) => prev + message.token)
+      } else if (message.type === MESSAGE_TYPES.AI_STREAM_END) {
+        // Streaming complete
+        setLoading(false)
+        setLoadingAction(null)
+        setResult(message.result)
+        setResultAction(message.action)
+        setResultSource(message.source)
+        setError(null)
+      } else if (message.type === MESSAGE_TYPES.AI_RESULT) {
+        // Non-streaming result (fallback)
         setLoading(false)
         setLoadingAction(null)
         setResult(message.result)
@@ -48,7 +68,8 @@ export default function App() {
   }, [])
 
   // Determine current state
-  const state = loading ? 'loading' : error ? 'error' : result ? 'result' : 'idle'
+  const isStreaming = !loading && !error && resultAction !== null && (result === '' || result !== null)
+  const state = loading ? 'loading' : error ? 'error' : result !== null ? 'result' : 'idle'
 
   return (
     <div className="app">
@@ -103,14 +124,13 @@ export default function App() {
             <strong>Something went wrong</strong>
             {error}
           </div>
-        )}
-
-        {state === 'result' && (
-          <ResultView
-            result={result}
-            action={resultAction}
-            source={resultSource}
-          />
+        )}          {state === 'result' && (
+            <ResultView
+              result={result}
+              action={resultAction}
+              source={resultSource}
+              isStreaming={isStreaming}
+            />
         )}
       </main>
     </div>

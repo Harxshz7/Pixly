@@ -5,6 +5,7 @@
 
 let floatingBtn = null
 let currentSelection = null
+let scrollHideTimer = null
 
 /**
  * Initialize the selection handler — call once on content script load
@@ -66,12 +67,12 @@ function showFloatingButton(rect, selectedText) {
   floatingBtn = document.createElement('div')
   floatingBtn.id = 'pixly-selection-btn'
 
-  // Position below the selection
-  const top = rect.bottom + window.scrollY + 8
-  const left = rect.left + window.scrollX + rect.width / 2 - 16
+  // Position below the selection (viewport-fixed so it stays visible on scroll)
+  const top = rect.bottom + 8
+  const left = rect.left + rect.width / 2 - 16
 
   floatingBtn.style.cssText = `
-    position: absolute;
+    position: fixed;
     top: ${top}px;
     left: ${left}px;
     width: 32px;
@@ -85,9 +86,16 @@ function showFloatingButton(rect, selectedText) {
     justify-content: center;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     z-index: 2147483646;
-    transition: transform 0.15s ease, background 0.15s ease;
+    transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
     animation: pixly-fade-in 0.15s ease;
   `
+
+  // Hide button when user scrolls
+  const onScroll = () => {
+    hideFloatingButton()
+    window.removeEventListener('scroll', onScroll)
+  }
+  window.addEventListener('scroll', onScroll, { once: true })
 
   // Lightning bolt icon (SVG)
   floatingBtn.innerHTML = `
@@ -114,7 +122,7 @@ function showFloatingButton(rect, selectedText) {
     if (currentSelection) {
       // Dispatch a custom event that the content script can listen to
       document.dispatchEvent(
-        new CustomEvent('pixly:explain-text', {
+        new CustomEvent('pixly:request-explain', {
           detail: { text: currentSelection },
         })
       )

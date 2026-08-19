@@ -9,7 +9,7 @@
  */
 
 import { MESSAGE_TYPES, CONTEXT_MENU_IDS } from '../lib/utils/constants.js'
-import { aiComplete } from '../lib/ai/client.js'
+import { aiComplete, aiCompleteStream } from '../lib/ai/client.js'
 import { buildTextExplainPrompt } from '../lib/ai/prompts/text-explain.js'
 import { buildImageAnalyzePrompt, buildScreenshotAnalyzePrompt } from '../lib/ai/prompts/image-analyze.js'
 import { buildUIRecreatePrompt } from '../lib/ai/prompts/ui-recreate.js'
@@ -126,24 +126,38 @@ async function handleExplainText(message) {
     } catch (e) {
       // Already open
     }
-
-    // Notify side panel that we're starting
-    chrome.runtime.sendMessage({
-      type: 'pixly:loading',
-      action: 'explain-text',
-    })
   }
+
+  const source = { type: 'text', content: text }
+  const action = 'explain-text'
 
   try {
     const prompt = buildTextExplainPrompt(text, pageUrl, pageTitle)
-    const result = await aiComplete(prompt)
 
-    // Send result to side panel
+    // Notify side panel that streaming is starting
     chrome.runtime.sendMessage({
-      type: MESSAGE_TYPES.AI_RESULT,
-      result,
-      action: 'explain-text',
-      source: { type: 'text', content: text },
+      type: MESSAGE_TYPES.AI_STREAM_START,
+      action,
+      source,
+    })
+
+    // Stream tokens to side panel
+    let fullResult = ''
+    for await (const token of aiCompleteStream(prompt)) {
+      fullResult += token
+      chrome.runtime.sendMessage({
+        type: MESSAGE_TYPES.AI_STREAM_TOKEN,
+        token,
+        action,
+      })
+    }
+
+    // Signal streaming is complete
+    chrome.runtime.sendMessage({
+      type: MESSAGE_TYPES.AI_STREAM_END,
+      result: fullResult,
+      action,
+      source,
     })
 
     return { ok: true }
@@ -151,7 +165,7 @@ async function handleExplainText(message) {
     chrome.runtime.sendMessage({
       type: MESSAGE_TYPES.AI_ERROR,
       error: err.message,
-      action: 'explain-text',
+      action,
     })
     return { error: err.message }
   }

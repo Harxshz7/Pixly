@@ -140,6 +140,49 @@ body {
   font-size: 13px;
 }
 
+/* ─── Streaming Indicator ───────────────────────────────────────── */
+
+.streaming-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--px-text-dim);
+  animation: px-fade-in 0.2s ease;
+}
+
+.streaming-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--px-primary);
+  animation: px-pulse 1s ease-in-out infinite;
+}
+
+@keyframes px-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.streaming-cursor {
+  display: inline-block;
+  color: var(--px-primary);
+  animation: px-blink 0.8s step-end infinite;
+  font-size: 12px;
+  margin-left: 2px;
+  vertical-align: middle;
+}
+
+@keyframes px-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
 /* ─── Result View ───────────────────────────────────────────────── */
 
 .result-view {
@@ -263,6 +306,92 @@ body {
 .error-state strong {
   display: block;
   margin-bottom: 4px;
+}
+
+/* ─── Markdown Content ─────────────────────────────────────────── */
+
+.result-content p {
+  margin: 0 0 12px 0;
+}
+
+.result-content p:last-child {
+  margin-bottom: 0;
+}
+
+.result-content h2,
+.result-content h3,
+.result-content h4 {
+  margin: 16px 0 8px 0;
+  color: var(--px-text);
+}
+
+.result-content h2 {
+  font-size: 16px;
+}
+
+.result-content h3 {
+  font-size: 15px;
+}
+
+.result-content h4 {
+  font-size: 14px;
+}
+
+.result-content strong {
+  color: var(--px-text);
+  font-weight: 600;
+}
+
+.result-content em {
+  font-style: italic;
+  color: var(--px-text-dim);
+}
+
+.md-code-block {
+  background: #0d0d0f;
+  border: 1px solid var(--px-border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin: 8px 0;
+  overflow-x: auto;
+  font-family: var(--px-font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: #c8c8d0;
+}
+
+.md-inline-code {
+  background: rgba(99, 102, 241, 0.1);
+  color: #a5a6f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--px-font-mono);
+  font-size: 12px;
+}
+
+.result-content ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.result-content li {
+  margin: 4px 0;
+  line-height: 1.6;
+}
+
+.result-content a {
+  color: var(--px-primary);
+  text-decoration: none;
+}
+
+.result-content a:hover {
+  text-decoration: underline;
+}
+
+.result-content hr {
+  border: none;
+  border-top: 1px solid var(--px-border);
+  margin: 16px 0;
 }
 
 /* ─── Scrollbar ─────────────────────────────────────────────────── */
