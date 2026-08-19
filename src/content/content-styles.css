@@ -1,0 +1,65 @@
+/* Pixly Phase 1 — Content Script Styles */
+
+/* Selection floating button animation */
+@keyframes pixly-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Draw overlay transitions */
+#pixly-draw-overlay {
+  transition: background 0.15s ease;
+}
+
+#pixly-selection-box {
+  transition: none;
+}
+
+/* Toast notification for copy feedback */
+@keyframes pixly-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pixly-toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+#pixly-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  z-index: 2147483647;
+  pointer-events: none;
+  animation: pixly-toast-in 0.2s ease;
+}
+
+#pixly-toast.pixly-toast-exit {
+  animation: pixly-toast-out 0.2s ease forwards;
+}

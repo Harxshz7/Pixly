@@ -1,0 +1,415 @@
+/* Pixly Phase 1 — Side Panel Styles */
+
+:root {
+  --px-bg: #0f0f11;
+  --px-bg-secondary: #1a1a1e;
+  --px-bg-tertiary: #242428;
+  --px-border: #2a2a2e;
+  --px-text: #e8e8ec;
+  --px-text-secondary: #9393a0;
+  --px-text-muted: #6b6b78;
+  --px-primary: #6366f1;
+  --px-primary-hover: #4f46e5;
+  --px-primary-soft: rgba(99, 102, 241, 0.12);
+  --px-success: #22c55e;
+  --px-error: #ef4444;
+  --px-radius: 8px;
+  --px-radius-lg: 12px;
+  --px-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --px-font-mono: "SF Mono", "Fira Code", "Fira Mono", Menlo, monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--px-font);
+  background: var(--px-bg);
+  color: var(--px-text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ─── App Layout ─────────────────────────────────────────────────── */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--px-border);
+  flex-shrink: 0;
+}
+
+.app-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--px-primary);
+}
+
+.app-logo svg {
+  width: 20px;
+  height: 20px;
+}
+
+.app-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.app-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+/* ─── Empty State ─────────────────────────────────────────────────── */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 32px 24px;
+  color: var(--px-text-secondary);
+}
+
+.empty-state-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--px-primary-soft);
+  border-radius: var(--px-radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  color: var(--px-primary);
+}
+
+.empty-state h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--px-text);
+  margin-bottom: 8px;
+}
+
+.empty-state p {
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 280px;
+}
+
+/* ─── Loading State ──────────────────────────────────────────────── */
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--px-border);
+  border-top-color: var(--px-primary);
+  border-radius: 50%;
+  animation: px-spin 0.8s linear infinite;
+}
+
+@keyframes px-spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-state p {
+  margin-top: 16px;
+  color: var(--px-text-secondary);
+  font-size: 13px;
+}
+
+/* ─── Result View ─────────────────────────────────────────────────── */
+
+.result-view {
+  animation: px-fade-in 0.2s ease;
+}
+
+@keyframes px-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.result-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--px-primary-soft);
+  color: var(--px-primary);
+}
+
+.result-content {
+  background: var(--px-bg-secondary);
+  border: 1px solid var(--px-border);
+  border-radius: var(--px-radius-lg);
+  padding: 16px;
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.result-content h1,
+.result-content h2,
+.result-content h3 {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--px-text);
+}
+
+.result-content h1 { font-size: 18px; }
+.result-content h2 { font-size: 15px; }
+.result-content h3 { font-size: 14px; }
+
+.result-content p {
+  margin-bottom: 8px;
+}
+
+.result-content ul,
+.result-content ol {
+  margin-bottom: 8px;
+  padding-left: 20px;
+}
+
+.result-content li {
+  margin-bottom: 4px;
+}
+
+.result-content strong {
+  color: var(--px-text);
+  font-weight: 600;
+}
+
+.result-content code {
+  font-family: var(--px-font-mono);
+  font-size: 12px;
+  background: var(--px-bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.result-content pre {
+  background: var(--px-bg);
+  border: 1px solid var(--px-border);
+  border-radius: var(--px-radius);
+  padding: 12px;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+.result-content pre code {
+  background: none;
+  padding: 0;
+}
+
+.result-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* ─── Buttons ──────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--px-radius);
+  font-family: var(--px-font);
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: var(--px-primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--px-primary-hover);
+}
+
+.btn-secondary {
+  background: var(--px-bg-tertiary);
+  color: var(--px-text);
+  border: 1px solid var(--px-border);
+}
+
+.btn-secondary:hover {
+  background: var(--px-border);
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--px-radius);
+  background: transparent;
+  color: var(--px-text-secondary);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-icon:hover {
+  background: var(--px-bg-tertiary);
+  color: var(--px-text);
+}
+
+/* ─── Action Buttons ──────────────────────────────────────────────── */
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  padding: 12px 0;
+}
+
+.action-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  background: var(--px-bg-secondary);
+  border: 1px solid var(--px-border);
+  border-radius: var(--px-radius-lg);
+  color: var(--px-text-secondary);
+  cursor: pointer;
+  font-family: var(--px-font);
+  font-size: 11px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.action-btn:hover {
+  background: var(--px-bg-tertiary);
+  border-color: var(--px-primary);
+  color: var(--px-text);
+}
+
+.action-btn-icon {
+  width: 36px;
+  height: 36px;
+  background: var(--px-primary-soft);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--px-primary);
+}
+
+/* ─── Copy Button ─────────────────────────────────────────────────── */
+
+.copy-btn {
+  position: relative;
+}
+
+.copy-btn .copy-check {
+  color: var(--px-success);
+}
+
+/* ─── Error State ─────────────────────────────────────────────────── */
+
+.error-state {
+  padding: 16px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--px-radius);
+  color: var(--px-error);
+  font-size: 13px;
+}
+
+.error-state strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* ─── Settings Prompt ─────────────────────────────────────────────── */
+
+.settings-prompt {
+  text-align: center;
+  padding: 16px;
+  background: var(--px-primary-soft);
+  border-radius: var(--px-radius);
+  margin-bottom: 16px;
+}
+
+.settings-prompt p {
+  font-size: 13px;
+  color: var(--px-text-secondary);
+  margin-bottom: 8px;
+}
+
+/* ─── Scrollbar ───────────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--px-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--px-text-muted);
+}
