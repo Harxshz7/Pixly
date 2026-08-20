@@ -14,6 +14,7 @@ import {
   buildScreenshotAnalyzePrompt,
 } from './prompts/image-analyze.js'
 import { buildUIRecreatePrompt } from './prompts/ui-recreate.js'
+import { buildUIAnalysisFullPrompt } from './prompts/ui-analysis-full.js'
 
 // ─── Prompt Router ───────────────────────────────────────────────────────────
 
@@ -28,6 +29,7 @@ const PROMPT_BUILDERS = {
     buildImageAnalyzePrompt(meta?.imageUrl, meta?.altText),
   'recreate-ui': (_text, meta) => buildUIRecreatePrompt(meta?.description),
   'screenshot-area': () => buildScreenshotAnalyzePrompt(),
+  'ui-analysis-full': () => buildUIAnalysisFullPrompt(),
 }
 
 // ─── Settings ────────────────────────────────────────────────────────────────
