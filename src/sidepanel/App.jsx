@@ -1,54 +1,34 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import ResultView from './components/ResultView.jsx'
 import LoadingState from './components/LoadingState.jsx'
-import { MESSAGE_TYPES } from '../lib/utils/constants.js'
+import { ACTIONS, createMessage } from '../lib/utils/messaging.js'
 
 export default function App() {
   const [loading, setLoading] = useState(false)
   const [loadingAction, setLoadingAction] = useState(null)
   const [result, setResult] = useState(null)
   const [resultAction, setResultAction] = useState(null)
-  const [resultSource, setResultSource] = useState(null)
   const [error, setError] = useState(null)
 
   // Listen for messages from background service worker
   useEffect(() => {
     const listener = (message) => {
-      if (message.type === MESSAGE_TYPES.AI_STREAM_START) {
-        // Streaming is starting — show streaming state with partial result
-        setLoading(false)
-        setLoadingAction(null)
-        setResult('')
-        setResultAction(message.action)
-        setResultSource(message.source)
-        setError(null)
-      } else if (message.type === MESSAGE_TYPES.AI_STREAM_TOKEN) {
-        // Append token to the result
-        setResult((prev) => prev + message.token)
-      } else if (message.type === MESSAGE_TYPES.AI_STREAM_END) {
-        // Streaming complete
-        setLoading(false)
-        setLoadingAction(null)
-        setResult(message.result)
-        setResultAction(message.action)
-        setResultSource(message.source)
-        setError(null)
-      } else if (message.type === MESSAGE_TYPES.AI_RESULT) {
-        // Non-streaming result (fallback)
-        setLoading(false)
-        setLoadingAction(null)
-        setResult(message.result)
-        setResultAction(message.action)
-        setResultSource(message.source)
-        setError(null)
-      } else if (message.type === MESSAGE_TYPES.AI_ERROR) {
-        setLoading(false)
-        setLoadingAction(null)
-        setError(message.error)
-      } else if (message.type === 'pixly:loading') {
+      if (message.action === ACTIONS.LOADING) {
         setLoading(true)
-        setLoadingAction(message.action)
+        setLoadingAction(message.payload.action)
+        setResult(null)
+        setResultAction(null)
         setError(null)
+      } else if (message.action === ACTIONS.RESULT_READY) {
+        setLoading(false)
+        setLoadingAction(null)
+        setResult(message.payload.result)
+        setResultAction(message.payload.action)
+        setError(null)
+      } else if (message.action === ACTIONS.RESULT_ERROR) {
+        setLoading(false)
+        setLoadingAction(null)
+        setError(message.payload.error)
       }
     }
 
@@ -63,7 +43,6 @@ export default function App() {
   const handleNewAnalysis = useCallback(() => {
     setResult(null)
     setResultAction(null)
-    setResultSource(null)
     setLoading(false)
     setLoadingAction(null)
     setError(null)
@@ -73,9 +52,10 @@ export default function App() {
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
       if (tab?.id) {
-        chrome.tabs.sendMessage(tab.id, {
-          type: MESSAGE_TYPES.START_DRAW_BOX,
-        })
+        chrome.tabs.sendMessage(
+          tab.id,
+          createMessage(ACTIONS.START_DRAW_BOX)
+        )
       }
     } catch (err) {
       console.error('Failed to start draw box:', err)
@@ -83,7 +63,6 @@ export default function App() {
   }, [])
 
   // Determine current state
-  const isStreaming = !loading && !error && resultAction !== null && (result === '' || result !== null)
   const state = loading ? 'loading' : error ? 'error' : result !== null ? 'result' : 'idle'
 
   return (
@@ -150,13 +129,13 @@ export default function App() {
             <strong>Something went wrong</strong>
             {error}
           </div>
-        )}          {state === 'result' && (
-            <ResultView
-              result={result}
-              action={resultAction}
-              source={resultSource}
-              isStreaming={isStreaming}
-            />
+        )}
+
+        {state === 'result' && (
+          <ResultView
+            result={result}
+            action={resultAction}
+          />
         )}
       </main>
     </div>

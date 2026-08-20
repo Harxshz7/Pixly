@@ -67,7 +67,7 @@ function renderMarkdown(text) {
 /**
  * ResultView — displays AI response with markdown rendering and Copy button.
  */
-export default function ResultView({ result, action, isStreaming = false }) {
+export default function ResultView({ result, action }) {
   const badge = ACTION_BADGES[action] || { label: 'Result', icon: '✨' }
   const contentRef = useRef(null)
 
@@ -86,17 +86,12 @@ export default function ResultView({ result, action, isStreaming = false }) {
         <span className="result-badge">
           {badge.icon} {badge.label}
         </span>
-        {isStreaming && (
-          <span className="streaming-indicator">
-            <span className="streaming-dot" />
-            Streaming...
-          </span>
-        )}
+
       </div>
 
       <div className="result-content" ref={contentRef}>
         <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
-        {isStreaming && <span className="streaming-cursor">▊</span>}
+
       </div>
 
       <div className="result-actions">

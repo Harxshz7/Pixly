@@ -1,65 +1,70 @@
-// Pixly Phase 1 — Messaging utilities
-// Handles communication between content scripts, background, and side panel
+// Pixly Phase 1 — Unified Messaging
+// Single message-passing convention through { action, payload } objects.
 
-import { MESSAGE_TYPES } from './constants.js'
+// ─── Actions ─────────────────────────────────────────────────────────────────
+
+export const ACTIONS = {
+  // Content → Background (requests)
+  ANALYZE_TEXT: 'ANALYZE_TEXT',
+  ANALYZE_IMAGE: 'ANALYZE_IMAGE',
+  ANALYZE_BOX: 'ANALYZE_BOX',
+
+  // Background → Side Panel (responses)
+  LOADING: 'LOADING',
+  RESULT_READY: 'RESULT_READY',
+  RESULT_ERROR: 'RESULT_ERROR',
+
+  // Background → Content
+  START_DRAW_BOX: 'START_DRAW_BOX',
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /**
- * Send a message from content script to background
+ * Create a message object with the unified convention.
+ * @param {string} action - One of ACTIONS
+ * @param {object} [payload={}]
+ * @returns {{ action: string, payload: object }}
  */
-export function sendToBackground(type, payload = {}) {
-  return chrome.runtime.sendMessage({ type, ...payload })
+export function createMessage(action, payload = {}) {
+  return { action, payload }
 }
 
 /**
- * Send a message to the side panel
+ * Send a message from content script → background.
  */
-export function sendToSidePanel(type, payload = {}) {
-  return chrome.runtime.sendMessage({ type, ...payload })
+export function sendToBackground(action, payload = {}) {
+  return chrome.runtime.sendMessage(createMessage(action, payload))
 }
 
 /**
- * Send a message to a specific tab's content script
+ * Send a message from background → side panel.
  */
-export function sendToTab(tabId, type, payload = {}) {
-  return chrome.tabs.sendMessage(tabId, { type, ...payload })
+export function sendToSidePanel(action, payload = {}) {
+  return chrome.runtime.sendMessage(createMessage(action, payload))
 }
 
 /**
- * Listen for messages from background / content scripts
- * Returns a cleanup function to remove the listener
+ * Send a message from background → content script in a specific tab.
  */
-export function onMessage(type, handler) {
-  const listener = (message, sender, sendResponse) => {
-    if (message.type === type) {
-      const result = handler(message, sender)
-      // Support both sync and async handlers
-      if (result instanceof Promise) {
-        result.then(sendResponse).catch(() => sendResponse({ error: true }))
-        return true // keep the message channel open for async response
-      }
-      sendResponse(result)
+export function sendToTab(tabId, action, payload = {}) {
+  return chrome.tabs.sendMessage(tabId, createMessage(action, payload))
+}
+
+/**
+ * Listen for messages matching a specific action.
+ * Returns a cleanup function to remove the listener.
+ *
+ * @param {string} action - One of ACTIONS
+ * @param {(payload: object, sender: chrome.runtime.MessageSender) => void} handler
+ * @returns {() => void} cleanup
+ */
+export function onAction(action, handler) {
+  const listener = (message, sender) => {
+    if (message.action === action) {
+      handler(message.payload || {}, sender)
     }
   }
-
   chrome.runtime.onMessage.addListener(listener)
   return () => chrome.runtime.onMessage.removeListener(listener)
 }
-
-/**
- * Listen for messages and respond asynchronously
- */
-export function onMessageAsync(type, handler) {
-  const listener = (message, sender, sendResponse) => {
-    if (message.type === type) {
-      handler(message, sender)
-        .then(sendResponse)
-        .catch((err) => sendResponse({ error: err.message }))
-      return true // keeps sendResponse channel open for async
-    }
-  }
-
-  chrome.runtime.onMessage.addListener(listener)
-  return () => chrome.runtime.onMessage.removeListener(listener)
-}
-
-export { MESSAGE_TYPES }

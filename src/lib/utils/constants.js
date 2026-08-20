@@ -21,23 +21,6 @@ export const API_ENDPOINTS = {
   [AI_PROVIDERS.OPENAI]: 'https://api.openai.com/v1/chat/completions',
 }
 
-export const MESSAGE_TYPES = {
-  // Content → Background actions
-  EXPLAIN_TEXT: 'pixly:explain-text',
-  ANALYZE_IMAGE: 'pixly:analyze-image',
-  RECREATE_UI: 'pixly:recreate-ui',
-  OPEN_SIDE_PANEL: 'pixly:open-side-panel',
-  START_DRAW_BOX: 'pixly:start-draw-box',
-  SCREENSHOT_AREA: 'pixly:screenshot-area',
-  SCREENSHOT_RESULT: 'pixly:screenshot-result',
-  // Background → Side panel results
-  AI_RESULT: 'pixly:ai-result',
-  AI_ERROR: 'pixly:ai-error',
-  AI_STREAM_START: 'pixly:ai-stream-start',
-  AI_STREAM_TOKEN: 'pixly:ai-stream-token',
-  AI_STREAM_END: 'pixly:ai-stream-end',
-}
-
 export const AI_TYPES = {
   EXPLAIN_TEXT: 'explain-text',
   ANALYZE_IMAGE: 'analyze-image',
