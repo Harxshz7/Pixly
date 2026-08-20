@@ -410,6 +410,432 @@ body {
   margin-left: 4px;
 }
 
+/* ─── Phase 2: Badges ────────────────────────────────────────────── */
+
+.badges-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--px-primary-soft);
+  color: var(--px-primary);
+}
+
+.badge-confidence {
+  font-size: 10px;
+  opacity: 0.7;
+  margin-left: 2px;
+}
+
+.badge-theme {
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.badge-theme-dark {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5a6f6;
+}
+
+.badge-theme-light {
+  background: rgba(250, 204, 21, 0.12);
+  color: #facc15;
+}
+
+/* ─── Phase 2: Analysis Sections ────────────────────────────────── */
+
+.analysis-section {
+  margin-bottom: 20px;
+}
+
+.analysis-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--px-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.analysis-note {
+  font-size: 12px;
+  color: var(--px-text-dim);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+/* ─── Phase 2: Color Palette ────────────────────────────────────── */
+
+.color-palette {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.color-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.color-swatch:hover {
+  background: var(--px-bg-card);
+}
+
+.color-swatch-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--px-border);
+  flex-shrink: 0;
+}
+
+.color-swatch-label {
+  font-size: 10px;
+  font-family: var(--px-font-mono);
+  color: var(--px-text-dim);
+  white-space: nowrap;
+}
+
+/* ─── Phase 2: Typography Panel ────────────────────────────────── */
+
+.typo-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--px-border);
+  font-size: 13px;
+}
+
+.typo-row:last-child {
+  border-bottom: none;
+}
+
+.typo-label {
+  font-weight: 500;
+  color: var(--px-text);
+  text-transform: capitalize;
+}
+
+.typo-value {
+  color: var(--px-text-dim);
+  font-family: var(--px-font-mono);
+  font-size: 12px;
+}
+
+/* ─── Phase 2: Component Breakdown ─────────────────────────────── */
+
+.component-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.component-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--px-bg-card);
+  border-radius: 6px;
+  border: 1px solid var(--px-border);
+}
+
+.component-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--px-primary);
+}
+
+.component-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.component-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--px-text);
+}
+
+.component-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.component-position {
+  font-size: 11px;
+  color: var(--px-primary);
+  font-family: var(--px-font-mono);
+}
+
+.component-desc {
+  font-size: 11px;
+  color: var(--px-text-dim);
+  line-height: 1.4;
+}
+
+/* ─── Phase 2: Design Tokens ───────────────────────────────────── */
+
+.token-group {
+  margin-bottom: 12px;
+}
+
+.token-group-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--px-text);
+  margin-bottom: 6px;
+}
+
+.token-values {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.token-chip {
+  padding: 3px 8px;
+  background: var(--px-bg-card);
+  border: 1px solid var(--px-border);
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: var(--px-font-mono);
+  color: var(--px-text-dim);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.token-chip:hover {
+  background: var(--px-border);
+  color: var(--px-text);
+}
+
+.token-note {
+  display: block;
+  font-size: 11px;
+  color: var(--px-text-dim);
+  margin-top: 4px;
+}
+
+.token-shadow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  background: var(--px-bg-card);
+  border: 1px solid var(--px-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+  text-align: left;
+  width: 100%;
+}
+
+.token-shadow:hover {
+  background: var(--px-border);
+}
+
+.token-shadow-code {
+  font-size: 11px;
+  font-family: var(--px-font-mono);
+  color: var(--px-text);
+  word-break: break-all;
+}
+
+.token-shadow-desc {
+  font-size: 10px;
+  color: var(--px-text-dim);
+}
+
+/* ─── Phase 2: Format Selector ─────────────────────────────────── */
+
+.format-selector {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.format-btn {
+  padding: 5px 10px;
+  background: var(--px-bg-card);
+  border: 1px solid var(--px-border);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--px-text-dim);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.format-btn:hover {
+  background: var(--px-border);
+  color: var(--px-text);
+}
+
+.format-btn-active {
+  background: var(--px-primary-soft);
+  border-color: var(--px-primary);
+  color: var(--px-primary);
+}
+
+/* ─── Phase 2: Code Block ──────────────────────────────────────── */
+
+.code-block-wrapper {
+  position: relative;
+}
+
+.code-copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 8px;
+  background: var(--px-border);
+  border: none;
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--px-text-dim);
+  cursor: pointer;
+  z-index: 1;
+  transition: background 0.15s, color 0.15s;
+}
+
+.code-copy-btn:hover {
+  background: var(--px-primary);
+  color: white;
+}
+
+.code-block {
+  background: #0d0d0f;
+  border: 1px solid var(--px-border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  font-family: var(--px-font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: #c8c8d0;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.code-block code {
+  white-space: pre;
+}
+
+.code-loading {
+  padding: 24px;
+  text-align: center;
+  color: var(--px-text-dim);
+  font-size: 13px;
+}
+
+/* ─── Phase 2: Syntax Highlighting ─────────────────────────────── */
+
+.hl-keyword { color: #c678dd; }
+.hl-tag { color: #e06c75; }
+.hl-attr { color: #d19a66; }
+.hl-string { color: #98c379; }
+.hl-number { color: #d19a66; }
+.hl-comment { color: #5c6370; font-style: italic; }
+.hl-func { color: #61afef; }
+
+/* ─── Phase 2: Variations ──────────────────────────────────────── */
+
+.variations-trigger {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.variations-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.variations-tab {
+  padding: 5px 10px;
+  background: var(--px-bg-card);
+  border: 1px solid var(--px-border);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--px-text-dim);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.variations-tab:hover {
+  background: var(--px-border);
+  color: var(--px-text);
+}
+
+.variations-tab-active {
+  background: var(--px-primary-soft);
+  border-color: var(--px-primary);
+  color: var(--px-primary);
+}
+
+.variations-content {
+  animation: px-fade-in 0.15s ease;
+}
+
+.variations-description {
+  font-size: 13px;
+  color: var(--px-text-dim);
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.variations-prompt-wrapper {
+  background: var(--px-bg-card);
+  border: 1px solid var(--px-border);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.variations-prompt {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--px-text);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
+  font-family: var(--px-font);
+}
+
+.variations-copy {
+  width: 100%;
+}
+
 /* ─── Scrollbar ─────────────────────────────────────────────────── */
 
 ::-webkit-scrollbar {

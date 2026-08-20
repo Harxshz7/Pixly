@@ -6,9 +6,17 @@ import { ACTIONS, createMessage } from '../lib/utils/messaging.js'
 export default function App() {
   const [loading, setLoading] = useState(false)
   const [loadingAction, setLoadingAction] = useState(null)
-  const [result, setResult] = useState(null)
-  const [resultAction, setResultAction] = useState(null)
   const [error, setError] = useState(null)
+
+  // Phase 1 state (raw text results)
+  const [rawResult, setRawResult] = useState(null)
+  const [rawResultAction, setRawResultAction] = useState(null)
+
+  // Phase 2 state (structured analysis)
+  const [analysisData, setAnalysisData] = useState(null)
+  const [codeResult, setCodeResult] = useState(null)
+  const [codeFormat, setCodeFormat] = useState('html-css')
+  const [variationsData, setVariationsData] = useState(null)
 
   // Listen for messages from background service worker
   useEffect(() => {
@@ -16,15 +24,29 @@ export default function App() {
       if (message.action === ACTIONS.LOADING) {
         setLoading(true)
         setLoadingAction(message.payload.action)
-        setResult(null)
-        setResultAction(null)
         setError(null)
       } else if (message.action === ACTIONS.RESULT_READY) {
+        // Phase 1: raw text result
         setLoading(false)
         setLoadingAction(null)
-        setResult(message.payload.result)
-        setResultAction(message.payload.action)
+        setRawResult(message.payload.result)
+        setRawResultAction(message.payload.action)
         setError(null)
+      } else if (message.action === ACTIONS.ANALYSIS_READY) {
+        // Phase 2: structured analysis
+        setLoading(false)
+        setLoadingAction(null)
+        setAnalysisData(message.payload.analysis)
+        setCodeResult(null)
+        setVariationsData(null)
+        setError(null)
+      } else if (message.action === ACTIONS.CODE_READY) {
+        // Phase 2: generated code for a format
+        setCodeResult(message.payload.code)
+        setCodeFormat(message.payload.format)
+      } else if (message.action === ACTIONS.VARIATIONS_READY) {
+        // Phase 2: generated variations
+        setVariationsData(message.payload.variations)
       } else if (message.action === ACTIONS.RESULT_ERROR) {
         setLoading(false)
         setLoadingAction(null)
@@ -41,8 +63,12 @@ export default function App() {
   }, [])
 
   const handleNewAnalysis = useCallback(() => {
-    setResult(null)
-    setResultAction(null)
+    setRawResult(null)
+    setRawResultAction(null)
+    setAnalysisData(null)
+    setCodeResult(null)
+    setCodeFormat('html-css')
+    setVariationsData(null)
     setLoading(false)
     setLoadingAction(null)
     setError(null)
@@ -62,8 +88,31 @@ export default function App() {
     }
   }, [])
 
+  const handleFormatChange = useCallback((format) => {
+    setCodeFormat(format)
+    setCodeResult(null)
+    // Request code generation from background
+    chrome.runtime.sendMessage(
+      createMessage(ACTIONS.GENERATE_CODE, {
+        format,
+        analysis: analysisData,
+      })
+    )
+  }, [analysisData])
+
+  const handleGenerateVariations = useCallback(() => {
+    setVariationsData(null)
+    chrome.runtime.sendMessage(
+      createMessage(ACTIONS.GENERATE_VARIATIONS, {
+        analysis: analysisData,
+      })
+    )
+  }, [analysisData])
+
   // Determine current state
-  const state = loading ? 'loading' : error ? 'error' : result !== null ? 'result' : 'idle'
+  const hasAnalysis = analysisData !== null
+  const hasRawResult = rawResult !== null
+  const state = loading ? 'loading' : error ? 'error' : hasAnalysis ? 'analysis' : hasRawResult ? 'result' : 'idle'
 
   return (
     <div className="app">
@@ -76,7 +125,7 @@ export default function App() {
           Pixly
         </div>
         <div className="app-actions">
-          {state === 'result' && (
+          {(state === 'result' || state === 'analysis') && (
             <button className="btn-icon" onClick={handleNewAnalysis} title="New analysis">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -93,7 +142,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* Content — single area that switches by state */}
+      {/* Content */}
       <main className="app-content">
         {state === 'idle' && (
           <div className="empty-state">
@@ -132,9 +181,17 @@ export default function App() {
         )}
 
         {state === 'result' && (
+          <ResultView result={rawResult} action={rawResultAction} />
+        )}
+
+        {state === 'analysis' && (
           <ResultView
-            result={result}
-            action={resultAction}
+            analysis={analysisData}
+            codeResult={codeResult}
+            codeFormat={codeFormat}
+            variations={variationsData}
+            onFormatChange={handleFormatChange}
+            onGenerateVariations={handleGenerateVariations}
           />
         )}
       </main>
