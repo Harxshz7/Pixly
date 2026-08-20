@@ -38,6 +38,13 @@ export const MESSAGE_TYPES = {
   AI_STREAM_END: 'pixly:ai-stream-end',
 }
 
+export const AI_TYPES = {
+  EXPLAIN_TEXT: 'explain-text',
+  ANALYZE_IMAGE: 'analyze-image',
+  RECREATE_UI: 'recreate-ui',
+  SCREENSHOT_AREA: 'screenshot-area',
+}
+
 export const CONTEXT_MENU_IDS = {
   EXPLAIN_SELECTION: 'pixly-explain-selection',
   ANALYZE_IMAGE: 'pixly-analyze-image',

@@ -1,6 +1,6 @@
 // Pixly Phase 1 — AI Client
-// Unified wrapper for Anthropic Claude and OpenAI GPT APIs
-// Supports both streaming and non-streaming modes
+// Single entry point: callAI() picks the right prompt template and calls the configured provider's API.
+// Supports streaming, text-only, and vision requests. Works in service workers (no DOM deps).
 
 import {
   AI_PROVIDERS,
@@ -8,10 +8,30 @@ import {
   DEFAULT_MODELS,
   STORAGE_KEYS,
 } from '../utils/constants.js'
+import { buildTextExplainPrompt } from './prompts/text-explain.js'
+import {
+  buildImageAnalyzePrompt,
+  buildScreenshotAnalyzePrompt,
+} from './prompts/image-analyze.js'
+import { buildUIRecreatePrompt } from './prompts/ui-recreate.js'
+
+// ─── Prompt Router ───────────────────────────────────────────────────────────
 
 /**
- * Get settings from chrome.storage.local
+ * Map of action types to their prompt builder functions.
+ * Each builder receives (text, meta) and returns a prompt object.
  */
+const PROMPT_BUILDERS = {
+  'explain-text': (text, meta) =>
+    buildTextExplainPrompt(text, meta?.pageUrl, meta?.pageTitle),
+  'analyze-image': (_text, meta) =>
+    buildImageAnalyzePrompt(meta?.imageUrl, meta?.altText),
+  'recreate-ui': (_text, meta) => buildUIRecreatePrompt(meta?.description),
+  'screenshot-area': () => buildScreenshotAnalyzePrompt(),
+}
+
+// ─── Settings ────────────────────────────────────────────────────────────────
+
 async function getSettings() {
   const result = await chrome.storage.local.get([
     STORAGE_KEYS.API_KEY,
@@ -21,13 +41,14 @@ async function getSettings() {
   return {
     apiKey: result[STORAGE_KEYS.API_KEY] || '',
     provider: result[STORAGE_KEYS.AI_PROVIDER] || AI_PROVIDERS.ANTHROPIC,
-    model: result[STORAGE_KEYS.AI_MODEL] || DEFAULT_MODELS[AI_PROVIDERS.ANTHROPIC],
+    model:
+      result[STORAGE_KEYS.AI_MODEL] ||
+      DEFAULT_MODELS[AI_PROVIDERS.ANTHROPIC],
   }
 }
 
-/**
- * Build the messages array from a prompt and optional image
- */
+// ─── Message Building ────────────────────────────────────────────────────────
+
 function buildMessages(prompt, imageDataUrl, provider) {
   const messages = []
 
@@ -62,9 +83,6 @@ function buildMessages(prompt, imageDataUrl, provider) {
   return messages
 }
 
-/**
- * Convert image to base64 data URL format for Anthropic
- */
 function toAnthropicImagePart(dataUrl) {
   const match = dataUrl.match(/^data:image\/(\w+);base64,(.+)$/)
   if (!match) throw new Error('Invalid data URL format')
@@ -78,9 +96,6 @@ function toAnthropicImagePart(dataUrl) {
   }
 }
 
-/**
- * Convert image to base64 data URL format for OpenAI
- */
 function toOpenAIImagePart(dataUrl) {
   return {
     type: 'image_url',
@@ -88,101 +103,8 @@ function toOpenAIImagePart(dataUrl) {
   }
 }
 
-// ─── Non-streaming (original) ────────────────────────────────────────────────
+// ─── SSE Parser ──────────────────────────────────────────────────────────────
 
-async function callAnthropic(apiKey, model, messages, maxTokens = 4096) {
-  const systemMessage = messages.find((m) => m.role === 'system')
-  const nonSystemMessages = messages.filter((m) => m.role !== 'system')
-
-  const body = {
-    model,
-    max_tokens: maxTokens,
-    messages: nonSystemMessages,
-  }
-
-  if (systemMessage) {
-    body.system = systemMessage.content
-  }
-
-  const response = await fetch(API_ENDPOINTS[AI_PROVIDERS.ANTHROPIC], {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify(body),
-  })
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(
-      error.error?.message || `Anthropic API error: ${response.status}`
-    )
-  }
-
-  const data = await response.json()
-  return data.content[0]?.text || ''
-}
-
-async function callOpenAI(apiKey, model, messages, maxTokens = 4096) {
-  const response = await fetch(API_ENDPOINTS[AI_PROVIDERS.OPENAI], {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      max_tokens: maxTokens,
-    }),
-  })
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(
-      error.error?.message || `OpenAI API error: ${response.status}`
-    )
-  }
-
-  const data = await response.json()
-  return data.choices[0]?.message?.content || ''
-}
-
-/**
- * Main AI call (non-streaming) — dispatches to the configured provider
- * @param {object} prompt - { system?: string, messages: Array<{role, content}> }
- * @param {string|null} imageDataUrl - Optional base64 data URL for image analysis
- * @returns {Promise<string>} AI response text
- */
-export async function aiComplete(prompt, imageDataUrl = null) {
-  const { apiKey, provider, model } = await getSettings()
-
-  if (!apiKey) {
-    throw new Error('API key not configured. Open Pixly options to add your key.')
-  }
-
-  if (!model) {
-    throw new Error('No model selected. Open Pixly options to configure your model.')
-  }
-
-  const messages = buildMessages(prompt, imageDataUrl, provider)
-
-  if (provider === AI_PROVIDERS.ANTHROPIC) {
-    return callAnthropic(apiKey, model, messages)
-  } else {
-    return callOpenAI(apiKey, model, messages)
-  }
-}
-
-// ─── Streaming ──────────────────────────────────────────────────────────────
-
-/**
- * Parse SSE lines from a ReadableStream.
- * Yields { event, data } objects.
- */
 async function* parseSSE(response) {
   const reader = response.body.getReader()
   const decoder = new TextDecoder()
@@ -215,7 +137,6 @@ async function* parseSSE(response) {
       }
     }
 
-    // Yield any remaining data in buffer
     if (currentData) {
       yield { event: currentEvent, data: currentData }
     }
@@ -224,14 +145,8 @@ async function* parseSSE(response) {
   }
 }
 
-/**
- * Stream from Anthropic API — yields text tokens as they arrive
- * @param {string} apiKey
- * @param {string} model
- * @param {Array} messages
- * @param {number} maxTokens
- * @yields {string} text tokens
- */
+// ─── Provider Streamers ──────────────────────────────────────────────────────
+
 async function* streamAnthropic(apiKey, model, messages, maxTokens = 4096) {
   const systemMessage = messages.find((m) => m.role === 'system')
   const nonSystemMessages = messages.filter((m) => m.role !== 'system')
@@ -281,14 +196,6 @@ async function* streamAnthropic(apiKey, model, messages, maxTokens = 4096) {
   }
 }
 
-/**
- * Stream from OpenAI API — yields text tokens as they arrive
- * @param {string} apiKey
- * @param {string} model
- * @param {Array} messages
- * @param {number} maxTokens
- * @yields {string} text tokens
- */
 async function* streamOpenAI(apiKey, model, messages, maxTokens = 4096) {
   const response = await fetch(API_ENDPOINTS[AI_PROVIDERS.OPENAI], {
     method: 'POST',
@@ -326,26 +233,43 @@ async function* streamOpenAI(apiKey, model, messages, maxTokens = 4096) {
   }
 }
 
+// ─── Main Entry Point ────────────────────────────────────────────────────────
+
 /**
- * Streaming AI call — dispatches to the configured provider.
- * Returns an async generator that yields text tokens.
+ * Single entry point for all AI requests.
+ * Picks the right prompt template based on `type`, calls the configured provider's API,
+ * and streams text tokens back as an async generator.
  *
- * @param {object} prompt - { system?: string, messages: Array<{role, content}> }
- * @param {string|null} imageDataUrl - Optional base64 data URL for image analysis
- * @returns {AsyncGenerator<string>} Yields text tokens as they arrive
+ * @param {object} params
+ * @param {string} params.type - Action type: 'explain-text' | 'analyze-image' | 'recreate-ui' | 'screenshot-area'
+ * @param {string} [params.text=''] - Text content for text-based requests (e.g. selected text)
+ * @param {string|null} [params.imageBase64=null] - Base64 data URL for vision requests
+ * @param {object} [params.meta={}] - Additional context for prompt building (pageUrl, pageTitle, imageUrl, altText, description)
+ * @yields {string} Text tokens as they arrive from the API
+ * @throws {Error} If API key is not configured, model is missing, or type is unknown
  */
-export async function* aiCompleteStream(prompt, imageDataUrl = null) {
+export async function* callAI({ type, text = '', imageBase64 = null, meta = {} }) {
   const { apiKey, provider, model } = await getSettings()
 
   if (!apiKey) {
-    throw new Error('API key not configured. Open Pixly options to add your key.')
+    throw new Error(
+      'API key not configured. Open Pixly options to add your key.'
+    )
   }
 
   if (!model) {
-    throw new Error('No model selected. Open Pixly options to configure your model.')
+    throw new Error(
+      'No model selected. Open Pixly options to configure your model.'
+    )
   }
 
-  const messages = buildMessages(prompt, imageDataUrl, provider)
+  const buildPrompt = PROMPT_BUILDERS[type]
+  if (!buildPrompt) {
+    throw new Error(`Unknown action type: ${type}`)
+  }
+
+  const prompt = buildPrompt(text, meta)
+  const messages = buildMessages(prompt, imageBase64, provider)
 
   if (provider === AI_PROVIDERS.ANTHROPIC) {
     yield* streamAnthropic(apiKey, model, messages)
