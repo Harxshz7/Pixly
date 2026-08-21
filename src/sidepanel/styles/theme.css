@@ -1,0 +1,141 @@
+/* Pixly Phase 3 — Theme System
+   Dark/light mode for the extension's own UI.
+   Separate from Phase 2's dark/light detection of analyzed pages. */
+
+/* ─── Dark Theme (default) ────────────────────────────────────── */
+
+:root,
+[data-theme='dark'] {
+  --px-bg: #0f0f11;
+  --px-bg-card: #1a1a1e;
+  --px-bg-elevated: #222226;
+  --px-border: #2a2a2e;
+  --px-border-hover: #3a3a3e;
+  --px-text: #e8e8ec;
+  --px-text-dim: #9393a0;
+  --px-text-muted: #6b6b78;
+  --px-primary: #6366f1;
+  --px-primary-hover: #4f46e5;
+  --px-primary-soft: rgba(99, 102, 241, 0.12);
+  --px-success: #22c55e;
+  --px-error: #ef4444;
+  --px-warning: #f59e0b;
+  --px-radius: 8px;
+  --px-radius-sm: 6px;
+  --px-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --px-font-mono: "SF Mono", "Fira Code", Menlo, monospace;
+
+  /* Skeleton */
+  --px-skeleton-bg: #1e1e22;
+  --px-skeleton-shine: #2a2a2e;
+
+  /* Syntax highlighting */
+  --px-hl-keyword: #c678dd;
+  --px-hl-tag: #e06c75;
+  --px-hl-attr: #d19a66;
+  --px-hl-string: #98c379;
+  --px-hl-number: #d19a66;
+  --px-hl-comment: #5c6370;
+  --px-hl-func: #61afef;
+}
+
+/* ─── Light Theme ─────────────────────────────────────────────── */
+
+[data-theme='light'] {
+  --px-bg: #f5f5f7;
+  --px-bg-card: #ffffff;
+  --px-bg-elevated: #fafafa;
+  --px-border: #e0e0e4;
+  --px-border-hover: #c8c8cc;
+  --px-text: #1a1a1e;
+  --px-text-dim: #6b6b78;
+  --px-text-muted: #9393a0;
+  --px-primary: #6366f1;
+  --px-primary-hover: #4f46e5;
+  --px-primary-soft: rgba(99, 102, 241, 0.08);
+  --px-success: #16a34a;
+  --px-error: #dc2626;
+  --px-warning: #d97706;
+
+  /* Skeleton */
+  --px-skeleton-bg: #e8e8ec;
+  --px-skeleton-shine: #f0f0f4;
+
+  /* Syntax highlighting */
+  --px-hl-keyword: #a626a4;
+  --px-hl-tag: #e45649;
+  --px-hl-attr: #986801;
+  --px-hl-string: #50a14f;
+  --px-hl-number: #986801;
+  --px-hl-comment: #a0a1a7;
+  --px-hl-func: #4078f2;
+}
+
+/* ─── System preference detection ─────────────────────────────── */
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --px-bg: #f5f5f7;
+    --px-bg-card: #ffffff;
+    --px-bg-elevated: #fafafa;
+    --px-border: #e0e0e4;
+    --px-border-hover: #c8c8cc;
+    --px-text: #1a1a1e;
+    --px-text-dim: #6b6b78;
+    --px-text-muted: #9393a0;
+    --px-primary: #6366f1;
+    --px-primary-hover: #4f46e5;
+    --px-primary-soft: rgba(99, 102, 241, 0.08);
+    --px-success: #16a34a;
+    --px-error: #dc2626;
+    --px-warning: #d97706;
+
+    --px-skeleton-bg: #e8e8ec;
+    --px-skeleton-shine: #f0f0f4;
+
+    --px-hl-keyword: #a626a4;
+    --px-hl-tag: #e45649;
+    --px-hl-attr: #986801;
+    --px-hl-string: #50a14f;
+    --px-hl-number: #986801;
+    --px-hl-comment: #a0a1a7;
+    --px-hl-func: #4078f2;
+  }
+}
+
+/* ─── Theme Toggle ────────────────────────────────────────────── */
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: var(--px-bg-card);
+  border: 1px solid var(--px-border);
+  border-radius: var(--px-radius);
+  cursor: pointer;
+  color: var(--px-text-dim);
+  font-size: 12px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.theme-toggle:hover {
+  border-color: var(--px-border-hover);
+  color: var(--px-text);
+}
+
+/* ─── Code Block Theme Override ───────────────────────────────── */
+
+[data-theme='light'] .code-block,
+[data-theme='light'] .md-code-block {
+  background: #f6f8fa;
+  color: #24292e;
+}
+
+[data-theme='light'] .hl-keyword { color: var(--px-hl-keyword); }
+[data-theme='light'] .hl-tag { color: var(--px-hl-tag); }
+[data-theme='light'] .hl-attr { color: var(--px-hl-attr); }
+[data-theme='light'] .hl-string { color: var(--px-hl-string); }
+[data-theme='light'] .hl-number { color: var(--px-hl-number); }
+[data-theme='light'] .hl-comment { color: var(--px-hl-comment); }
+[data-theme='light'] .hl-func { color: var(--px-hl-func); }

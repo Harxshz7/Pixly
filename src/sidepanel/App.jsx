@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import ResultView from './components/ResultView.jsx'
 import LoadingState from './components/LoadingState.jsx'
+import ErrorState from './components/ErrorState.jsx'
+import EmptyState from './components/EmptyState.jsx'
+import HistoryList from './components/HistoryList.jsx'
+import ExportButton from './components/ExportButton.jsx'
 import { ACTIONS, createMessage } from '../lib/utils/messaging.js'
+import { getAllSettings } from '../lib/storage/settings.js'
+import { saveToHistory, updateHistoryEntry } from '../lib/storage/history.js'
 
 export default function App() {
   const [loading, setLoading] = useState(false)
@@ -18,6 +24,28 @@ export default function App() {
   const [codeFormat, setCodeFormat] = useState('html-css')
   const [variationsData, setVariationsData] = useState(null)
 
+  // Phase 3 state
+  const [historyId, setHistoryId] = useState(null) // ID of the current result in history
+  const [defaultFormat, setDefaultFormat] = useState('html-css')
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0) // Force HistoryList to re-mount
+
+  // Load settings on mount + apply theme
+  useEffect(() => {
+    getAllSettings().then((settings) => {
+      setDefaultFormat(settings.defaultFormat || 'html-css')
+      // Apply theme
+      applyTheme(settings.theme || 'system')
+    })
+  }, [])
+
+  function applyTheme(t) {
+    if (t === 'system') {
+      document.documentElement.removeAttribute('data-theme')
+    } else {
+      document.documentElement.setAttribute('data-theme', t)
+    }
+  }
+
   // Listen for messages from background service worker
   useEffect(() => {
     const listener = (message) => {
@@ -26,27 +54,54 @@ export default function App() {
         setLoadingAction(message.payload.action)
         setError(null)
       } else if (message.action === ACTIONS.RESULT_READY) {
-        // Phase 1: raw text result
         setLoading(false)
         setLoadingAction(null)
         setRawResult(message.payload.result)
         setRawResultAction(message.payload.action)
         setError(null)
+        // Auto-save to history — determine type from action
+        const historyType = message.payload.action === 'analyze-image' ? 'image' : 'text'
+        autoSaveToHistory({
+          type: historyType,
+          snippet: (message.payload.result || '').slice(0, 120),
+          result: message.payload.result,
+          pageUrl: message.payload.pageUrl,
+          pageTitle: message.payload.pageTitle,
+        })
       } else if (message.action === ACTIONS.ANALYSIS_READY) {
-        // Phase 2: structured analysis
         setLoading(false)
         setLoadingAction(null)
         setAnalysisData(message.payload.analysis)
         setCodeResult(null)
+        setCodeFormat(defaultFormat)
         setVariationsData(null)
         setError(null)
+        // Auto-save to history
+        autoSaveToHistory({
+          type: 'ui',
+          snippet: message.payload.analysis?.style?.type
+            ? `${message.payload.analysis.style.type} design`
+            : 'UI analysis',
+          analysis: message.payload.analysis,
+        })
       } else if (message.action === ACTIONS.CODE_READY) {
-        // Phase 2: generated code for a format
         setCodeResult(message.payload.code)
         setCodeFormat(message.payload.format)
+        // Update history entry with code
+        if (historyId) {
+          updateHistoryEntry(historyId, {
+            codeResult: message.payload.code,
+            codeFormat: message.payload.format,
+          })
+        }
       } else if (message.action === ACTIONS.VARIATIONS_READY) {
-        // Phase 2: generated variations
         setVariationsData(message.payload.variations)
+        // Update history entry with variations
+        if (historyId) {
+          updateHistoryEntry(historyId, {
+            variations: message.payload.variations,
+          })
+        }
       } else if (message.action === ACTIONS.RESULT_ERROR) {
         setLoading(false)
         setLoadingAction(null)
@@ -56,7 +111,16 @@ export default function App() {
 
     chrome.runtime.onMessage.addListener(listener)
     return () => chrome.runtime.onMessage.removeListener(listener)
-  }, [])
+  }, [defaultFormat, historyId])
+
+  async function autoSaveToHistory(entry) {
+    try {
+      const id = await saveToHistory(entry)
+      setHistoryId(id)
+    } catch (err) {
+      console.error('Failed to save to history:', err)
+    }
+  }
 
   const openOptions = useCallback(() => {
     chrome.runtime.openOptionsPage()
@@ -67,12 +131,14 @@ export default function App() {
     setRawResultAction(null)
     setAnalysisData(null)
     setCodeResult(null)
-    setCodeFormat('html-css')
+    setCodeFormat(defaultFormat)
     setVariationsData(null)
     setLoading(false)
     setLoadingAction(null)
     setError(null)
-  }, [])
+    setHistoryId(null)
+    setHistoryRefreshKey((k) => k + 1)
+  }, [defaultFormat])
 
   const handleDrawBox = useCallback(async () => {
     try {
@@ -91,7 +157,6 @@ export default function App() {
   const handleFormatChange = useCallback((format) => {
     setCodeFormat(format)
     setCodeResult(null)
-    // Request code generation from background
     chrome.runtime.sendMessage(
       createMessage(ACTIONS.GENERATE_CODE, {
         format,
@@ -108,6 +173,20 @@ export default function App() {
       })
     )
   }, [analysisData])
+
+  // Build current result for export
+  const currentExportEntry = rawResult
+    ? { type: 'text', result: rawResult, timestamp: Date.now() }
+    : analysisData
+    ? {
+        type: 'ui',
+        analysis: analysisData,
+        codeResult,
+        codeFormat,
+        variations: variationsData,
+        timestamp: Date.now(),
+      }
+    : null
 
   // Determine current state
   const hasAnalysis = analysisData !== null
@@ -145,27 +224,10 @@ export default function App() {
       {/* Content */}
       <main className="app-content">
         {state === 'idle' && (
-          <div className="empty-state">
-            <div className="empty-state-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-              </svg>
-            </div>
-            <h2>Waiting for selection</h2>
-            <p>
-              Select text on any page and click the ⚡ button, or right-click to use Pixly.
-            </p>
-            <button
-              className="btn btn-primary draw-box-btn"
-              onClick={handleDrawBox}
-              style={{ marginTop: 16 }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeDasharray="4 2" />
-              </svg>
-              Draw Box
-              <span className="shortcut-hint">Ctrl+Shift+X</span>
-            </button>
+          <div>
+            <EmptyState onDrawBox={handleDrawBox} />
+            {/* Show history below empty state */}
+            <HistoryList key={historyRefreshKey} />
           </div>
         )}
 
@@ -174,25 +236,32 @@ export default function App() {
         )}
 
         {state === 'error' && (
-          <div className="error-state">
-            <strong>Something went wrong</strong>
-            {error}
-          </div>
+          <ErrorState error={error} />
         )}
 
         {state === 'result' && (
-          <ResultView result={rawResult} action={rawResultAction} />
+          <div>
+            <ResultView result={rawResult} action={rawResultAction} />
+            <div className="result-actions">
+              <ExportButton entry={currentExportEntry} />
+            </div>
+          </div>
         )}
 
         {state === 'analysis' && (
-          <ResultView
-            analysis={analysisData}
-            codeResult={codeResult}
-            codeFormat={codeFormat}
-            variations={variationsData}
-            onFormatChange={handleFormatChange}
-            onGenerateVariations={handleGenerateVariations}
-          />
+          <div>
+            <ResultView
+              analysis={analysisData}
+              codeResult={codeResult}
+              codeFormat={codeFormat}
+              variations={variationsData}
+              onFormatChange={handleFormatChange}
+              onGenerateVariations={handleGenerateVariations}
+            />
+            <div className="result-actions">
+              <ExportButton entry={currentExportEntry} />
+            </div>
+          </div>
         )}
       </main>
     </div>

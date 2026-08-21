@@ -75,7 +75,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         try {
           await chrome.sidePanel.open({ tabId: tab.id })
         } catch (e) {}
-        runAnalysis('explain-text', { type: 'explain-text', text: info.selectionText })
+        runAnalysis('explain-text', {
+          type: 'explain-text',
+          text: info.selectionText,
+        }, { pageUrl: tab.url, pageTitle: tab.title })
       }
       break
     }
@@ -99,7 +102,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           type: 'analyze-image',
           imageBase64: dataUrl,
           meta: { imageUrl: info.srcUrl, altText },
-        })
+        }, { pageUrl: tab.url, pageTitle: tab.title })
       }
       break
     }
@@ -115,7 +118,7 @@ onAction(ACTIONS.ANALYZE_TEXT, async (payload) => {
     type: 'explain-text',
     text,
     meta: { pageUrl, pageTitle },
-  })
+  }, { pageUrl, pageTitle })
 })
 
 onAction(ACTIONS.ANALYZE_BOX, async (payload) => {
@@ -269,7 +272,7 @@ async function runFullUIAnalysis(region) {
 
 // ─── Analysis Runner (Phase 1 — text/image) ─────────────────────────────────
 
-async function runAnalysis(action, aiParams) {
+async function runAnalysis(action, aiParams, meta = {}) {
   sendToSidePanel(ACTIONS.LOADING, { action })
 
   try {
@@ -277,7 +280,12 @@ async function runAnalysis(action, aiParams) {
     for await (const token of callAI(aiParams)) {
       fullResult += token
     }
-    sendToSidePanel(ACTIONS.RESULT_READY, { result: fullResult, action })
+    sendToSidePanel(ACTIONS.RESULT_READY, {
+      result: fullResult,
+      action,
+      pageUrl: meta.pageUrl || null,
+      pageTitle: meta.pageTitle || null,
+    })
   } catch (err) {
     sendToSidePanel(ACTIONS.RESULT_ERROR, { error: err.message, action })
   }
