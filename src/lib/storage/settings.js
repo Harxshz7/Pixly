@@ -1,7 +1,21 @@
-// Pixly Phase 1 — Settings storage
+// Pixly Phase 3 — Settings storage
 // Wraps chrome.storage.local for persisting user settings
 
 import { STORAGE_KEYS, AI_PROVIDERS, DEFAULT_MODELS } from '../utils/constants.js'
+
+// Extended storage keys for Phase 3
+const EXTENDED_KEYS = {
+  ...STORAGE_KEYS,
+  DEFAULT_FORMAT: 'pixly_default_format',
+  THEME: 'pixly_theme', // 'dark' | 'light' | 'system'
+  HISTORY_LIMIT: 'pixly_history_limit',
+}
+
+const DEFAULTS = {
+  [EXTENDED_KEYS.DEFAULT_FORMAT]: 'html-css',
+  [EXTENDED_KEYS.THEME]: 'system',
+  [EXTENDED_KEYS.HISTORY_LIMIT]: 50,
+}
 
 /**
  * Get a setting value
@@ -29,19 +43,22 @@ export async function removeSetting(key) {
  * Get all Pixly settings
  */
 export async function getAllSettings() {
-  const keys = Object.values(STORAGE_KEYS)
+  const keys = Object.values(EXTENDED_KEYS)
   const result = await chrome.storage.local.get(keys)
   return {
     apiKey: result[STORAGE_KEYS.API_KEY] || '',
     aiProvider: result[STORAGE_KEYS.AI_PROVIDER] || AI_PROVIDERS.ANTHROPIC,
     aiModel: result[STORAGE_KEYS.AI_MODEL] || DEFAULT_MODELS[AI_PROVIDERS.ANTHROPIC],
+    defaultFormat: result[EXTENDED_KEYS.DEFAULT_FORMAT] || DEFAULTS[EXTENDED_KEYS.DEFAULT_FORMAT],
+    theme: result[EXTENDED_KEYS.THEME] || DEFAULTS[EXTENDED_KEYS.THEME],
+    historyLimit: result[EXTENDED_KEYS.HISTORY_LIMIT] ?? DEFAULTS[EXTENDED_KEYS.HISTORY_LIMIT],
   }
 }
 
 /**
  * Save all settings at once
  */
-export async function saveAllSettings({ apiKey, aiProvider, aiModel }) {
+export async function saveAllSettings({ apiKey, aiProvider, aiModel, defaultFormat, theme, historyLimit }) {
   const updates = {}
   if (apiKey !== undefined) updates[STORAGE_KEYS.API_KEY] = apiKey
   if (aiProvider !== undefined) {
@@ -52,6 +69,9 @@ export async function saveAllSettings({ apiKey, aiProvider, aiModel }) {
     }
   }
   if (aiModel !== undefined) updates[STORAGE_KEYS.AI_MODEL] = aiModel
+  if (defaultFormat !== undefined) updates[EXTENDED_KEYS.DEFAULT_FORMAT] = defaultFormat
+  if (theme !== undefined) updates[EXTENDED_KEYS.THEME] = theme
+  if (historyLimit !== undefined) updates[EXTENDED_KEYS.HISTORY_LIMIT] = historyLimit
   await chrome.storage.local.set(updates)
 }
 
@@ -62,3 +82,5 @@ export async function isConfigured() {
   const key = await getSetting(STORAGE_KEYS.API_KEY)
   return !!key
 }
+
+export { EXTENDED_KEYS, DEFAULTS }
