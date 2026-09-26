@@ -1046,6 +1046,37 @@ body {
   color: var(--px-primary);
 }
 
+/* ─── Favorite Toggle ──────────────────────────────────────────── */
+
+.history-item-favorite {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: var(--px-text-muted);
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+
+.history-item-favorite:hover {
+  background: rgba(250, 204, 21, 0.1);
+  color: #facc15;
+  transform: scale(1.15);
+}
+
+.history-item-favorite-active {
+  color: #facc15;
+}
+
+.history-item-favorite-active:hover {
+  background: rgba(250, 204, 21, 0.15);
+}
+
 .history-item-body {
   padding: 0 12px 12px 12px;
   border-top: 1px solid var(--px-border);

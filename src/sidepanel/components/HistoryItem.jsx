@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react'
 import { formatTimestamp } from '../../lib/utils/search.js'
-import { deleteHistoryEntry } from '../../lib/storage/history.js'
+import { deleteHistoryEntry, toggleFavorite } from '../../lib/storage/history.js'
+import { logEvent, EVENTS } from '../../lib/telemetry/event-log.js'
 import ResultView from './ResultView.jsx'
 import ExportButton from './ExportButton.jsx'
 
@@ -15,7 +16,7 @@ const TYPE_META = {
  * Collapsed: type icon, snippet/thumbnail, timestamp.
  * Expanded: full result via ResultView.
  */
-export default function HistoryItem({ entry, onDelete }) {
+export default function HistoryItem({ entry, onDelete, onToggleFavorite }) {
   const [expanded, setExpanded] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -38,6 +39,18 @@ export default function HistoryItem({ entry, onDelete }) {
       if (onDelete) onDelete(entry.id)
     },
     [entry.id, confirmDelete, onDelete]
+  )
+
+  const handleFavorite = useCallback(
+    async (e) => {
+      e.stopPropagation()
+      const newState = await toggleFavorite(entry.id)
+      if (newState !== null) {
+        logEvent(EVENTS.FAVORITE_TOGGLED)
+        if (onToggleFavorite) onToggleFavorite(entry.id, newState)
+      }
+    },
+    [entry.id, onToggleFavorite]
   )
 
   // Build snippet text
@@ -64,6 +77,13 @@ export default function HistoryItem({ entry, onDelete }) {
           </span>
         </div>
         <div className="history-item-actions" onClick={(e) => e.stopPropagation()}>
+          <button
+            className={`history-item-favorite ${entry.favorite ? 'history-item-favorite-active' : ''}`}
+            onClick={handleFavorite}
+            title={entry.favorite ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            {entry.favorite ? '★' : '☆'}
+          </button>
           <ExportButton entry={entry} small />
           <button
             className={`history-item-delete ${confirmDelete ? 'history-item-delete-confirm' : ''}`}

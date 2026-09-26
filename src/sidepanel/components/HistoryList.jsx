@@ -26,12 +26,22 @@ export default function HistoryList() {
     loadHistory()
   }, [])
 
+  // Sort favorites to top, then by timestamp
+  const sortWithFavorites = (list) => {
+    return [...list].sort((a, b) => {
+      if (a.favorite && !b.favorite) return -1
+      if (!a.favorite && b.favorite) return 1
+      return b.timestamp - a.timestamp
+    })
+  }
+
   const loadHistory = useCallback(async () => {
     setLoading(true)
     try {
       const data = await getHistory()
-      setEntries(data)
-      setFilteredEntries(data)
+      const sorted = sortWithFavorites(data)
+      setEntries(sorted)
+      setFilteredEntries(sorted)
     } catch (err) {
       console.error('Failed to load history:', err)
     } finally {
@@ -65,6 +75,18 @@ export default function HistoryList() {
   const handleDeleteEntry = useCallback((id) => {
     setEntries((prev) => prev.filter((e) => e.id !== id))
     setFilteredEntries((prev) => prev.filter((e) => e.id !== id))
+  }, [])
+
+  // Toggle favorite
+  const handleToggleFavorite = useCallback((id, newFavoriteState) => {
+    const updateList = (prev) => {
+      const updated = prev.map((e) =>
+        e.id === id ? { ...e, favorite: newFavoriteState } : e
+      )
+      return sortWithFavorites(updated)
+    }
+    setEntries(updateList)
+    setFilteredEntries(updateList)
   }, [])
 
   // Clear all history
@@ -126,7 +148,12 @@ export default function HistoryList() {
           </div>
         ) : (
           filteredEntries.map((entry) => (
-            <HistoryItem key={entry.id} entry={entry} onDelete={handleDeleteEntry} />
+            <HistoryItem
+              key={entry.id}
+              entry={entry}
+              onDelete={handleDeleteEntry}
+              onToggleFavorite={handleToggleFavorite}
+            />
           ))
         )}
       </div>

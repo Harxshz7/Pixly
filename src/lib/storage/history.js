@@ -117,7 +117,24 @@ export async function updateHistoryEntry(id, fields) {
 }
 
 /**
+ * Toggle the favorite flag on a history entry.
+ * Favorites are pinned to the top and excluded from FIFO eviction.
+ *
+ * @param {string} id
+ * @returns {Promise<boolean|null>} New favorite state, or null if not found
+ */
+export async function toggleFavorite(id) {
+  const entries = await readHistory()
+  const idx = entries.findIndex((e) => e.id === id)
+  if (idx === -1) return null
+  entries[idx].favorite = !entries[idx].favorite
+  await writeHistory(entries)
+  return entries[idx].favorite
+}
+
+/**
  * Get all history entries, newest first.
+
  * @returns {Promise<Array>}
  */
 export async function getHistory() {
