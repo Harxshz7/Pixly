@@ -74,15 +74,26 @@ export async function saveToHistory(entry) {
     variations: entry.variations || null,
     pageUrl: entry.pageUrl || null,
     pageTitle: entry.pageTitle || null,
+    favorite: false,
   }
 
   const entries = await readHistory()
   entries.unshift(record)
 
-  // Enforce limit — drop oldest
+  // Enforce limit — drop oldest non-favorited entries
   const limit = await getHistoryLimit()
   if (entries.length > limit) {
-    entries.length = limit
+    // Separate favorites from non-favorites
+    const favorites = entries.filter((e) => e.favorite)
+    const nonFavorites = entries.filter((e) => !e.favorite)
+    // Trim non-favorites to fit within limit (minus favorites count)
+    const nonFavLimit = Math.max(0, limit - favorites.length)
+    nonFavorites.length = Math.min(nonFavorites.length, nonFavLimit)
+    // Merge back: favorites first, then non-favorites, sorted by timestamp
+    const merged = [...favorites, ...nonFavorites]
+    merged.sort((a, b) => b.timestamp - a.timestamp)
+    entries.length = 0
+    entries.push(...merged)
   }
 
   await writeHistory(entries)
