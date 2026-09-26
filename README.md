@@ -2,14 +2,13 @@
 AI-powered text, image, and UI analysis directly in your browser.
 
 ## Features
-**Phase 1: MVP**
-- **Text Selection:** Highlight any text for instant AI explanations.
-- **Image Analysis:** Right-click images to extract details or generate descriptions.
-- **Draw-Box UI Capture:** Select screen areas to analyze layouts, recreate UI code, or extract design tokens.
-
-## Demo
-![Pixly Demo - Text Selection](placeholder-text-demo.png)
-![Pixly Demo - Draw Box](placeholder-box-demo.png)
+- **Text Selection:** Highlight any text for instant AI design and content explanations.
+- **Image Analysis:** Right-click images to extract visual characteristics, design tokens, and recreation prompts.
+- **Draw-Box UI Capture:** Select screen areas to analyze layout, spacing scales, border radiuses, and shadow definitions.
+- **Multi-Framework Code Generation:** Instant code output in React + Tailwind, Semantic HTML5/CSS, Vue 3 SFC, and Flutter widgets with zero-cost format switching.
+- **History & Snippets:** Auto-saved local history, favorites pinning, search filter, and one-click Markdown export.
+- **Custom Prompt Templates:** Customize system prompts for every analysis type with inline variable validation (`{{selection}}`, `{{image}}`, `{{context}}`) and automatic safe fallback.
+- **Privacy First:** 100% local storage via `chrome.storage.local`. No telemetry servers or third-party tracking.
 
 ## Installation (Dev)
 1. Clone the repository
@@ -17,13 +16,17 @@ AI-powered text, image, and UI analysis directly in your browser.
    ```bash
    npm install
    ```
-3. Build the extension:
+3. Run tests:
+   ```bash
+   npm test
+   ```
+4. Build the extension:
    ```bash
    npm run build
    ```
-4. Open `chrome://extensions`
-5. Enable **Developer mode**
-6. Click **Load unpacked** and select the `dist/` directory
+5. Open `chrome://extensions`
+6. Enable **Developer mode**
+7. Click **Load unpacked** and select the `dist/` directory
 
 ## Setup
 1. Open the extension **Options** page.
@@ -38,34 +41,22 @@ AI-powered text, image, and UI analysis directly in your browser.
 ## Keyboard Shortcuts
 | Action | Shortcut |
 |---|---|
-| Draw Box (Screen Capture) | `Ctrl+Shift+X` |
-| Open Side Panel | `Ctrl+Shift+P` |
+| Draw Box (Screen Capture) | `Ctrl+Shift+X` (Mac: `Cmd+Shift+X`) |
+| Open Side Panel | `Ctrl+Shift+P` (Mac: `Cmd+Shift+P`) |
 
 ## Tech Stack
 - **Extension Framework:** Chrome Manifest V3
-- **Build Tool:** Vite
+- **Build Tool:** Vite + esbuild
 - **UI:** React
-- **Logic:** Vanilla JS content scripts
-- **AI Models:** Claude / GPT-4o Vision
-
-## Project Structure
-```text
-pixly/
-├── public/          # Static assets & icons
-├── src/
-│   ├── background/  # Service worker, routing
-│   ├── content/     # Injected scripts, draw box
-│   ├── sidepanel/   # React UI
-│   ├── options/     # Settings UI
-│   ├── lib/         # AI wrappers, utils, generators
-│   └── shared/      # Shared types & shortcuts
-└── dist/            # Compiled output
-```
+- **AI Models:** Claude (Anthropic) / GPT-4o Vision (OpenAI)
 
 ## Roadmap
-- [ ] **Phase 2:** Advanced code generation (React, Vue, Tailwind, Flutter).
-- [ ] **Phase 3:** Save history and manage snippets locally.
-- [ ] **Phase 4:** Custom prompt management.
+- [x] **Phase 1:** Capture (text, image, box), AI integration, side panel UI, shortcuts.
+- [x] **Phase 2:** Advanced multi-framework code generation (React+Tailwind, HTML+CSS, Vue 3, Flutter), variations.
+- [x] **Phase 3:** History auto-save, favorites, search, Markdown export, baseline event log.
+- [x] **Phase 4a:** Error taxonomy, skeleton loading, manifest permission audit, privacy surface documentation.
+- [x] **Phase 4b:** Custom prompt templates system (CRUD, validator, safe fallback on repeated failures).
+- [x] **Ship Prep:** Store listing copy, privacy policy, manifest version 1.2.0, store-ready ZIP package.
 
 ## License
 MIT
