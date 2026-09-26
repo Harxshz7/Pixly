@@ -8,6 +8,11 @@ import ExportButton from './components/ExportButton.jsx'
 import { ACTIONS, createMessage } from '../lib/utils/messaging.js'
 import { getAllSettings } from '../lib/storage/settings.js'
 import { saveToHistory, updateHistoryEntry } from '../lib/storage/history.js'
+import {
+  getFailedTemplates,
+  resetTemplate,
+  DEFAULT_TEMPLATES,
+} from '../lib/storage/prompt-templates.js'
 
 export default function App() {
   const [loading, setLoading] = useState(false)
@@ -29,14 +34,32 @@ export default function App() {
   const [defaultFormat, setDefaultFormat] = useState('html-css')
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0) // Force HistoryList to re-mount
 
-  // Load settings on mount + apply theme
+  // Phase 4b state (safe fallback alert for custom prompt templates)
+  const [failedTemplateIds, setFailedTemplateIds] = useState([])
+
+  // Load settings on mount + apply theme + check template health
   useEffect(() => {
     getAllSettings().then((settings) => {
       setDefaultFormat(settings.defaultFormat || 'html-css')
       // Apply theme
       applyTheme(settings.theme || 'system')
     })
+    checkTemplateHealth()
   }, [])
+
+  const checkTemplateHealth = useCallback(async () => {
+    try {
+      const failed = await getFailedTemplates()
+      setFailedTemplateIds(failed || [])
+    } catch {
+      // Ignore in mock/test
+    }
+  }, [])
+
+  const handleResetFailedTemplate = async (templateId) => {
+    await resetTemplate(templateId)
+    await checkTemplateHealth()
+  }
 
   function applyTheme(t) {
     if (t === 'system') {
@@ -220,6 +243,33 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      {/* Template Safety Fallback Alert */}
+      {failedTemplateIds.length > 0 && (
+        <div className="template-fallback-alert">
+          <div className="template-fallback-alert-content">
+            <span className="template-fallback-icon">⚠️</span>
+            <span className="template-fallback-text">
+              Custom template <strong>{DEFAULT_TEMPLATES[failedTemplateIds[0]]?.label || failedTemplateIds[0]}</strong> had repeated errors. Safe fallback active.
+            </span>
+          </div>
+          <div className="template-fallback-alert-actions">
+            <button
+              className="template-fallback-reset-btn"
+              onClick={() => handleResetFailedTemplate(failedTemplateIds[0])}
+            >
+              Reset to Default
+            </button>
+            <button
+              className="template-fallback-dismiss-btn"
+              onClick={() => setFailedTemplateIds((prev) => prev.slice(1))}
+              title="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <main className="app-content">

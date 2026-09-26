@@ -17,10 +17,16 @@ import { isConfigured } from '../lib/storage/settings.js'
 import { extractColors } from '../lib/analysis/color-extractor.js'
 import { detectTheme } from '../lib/analysis/theme-detector.js'
 import { buildReactTailwindPrompt } from '../lib/generators/react-tailwind.js'
-import { buildHtmlCssPrompt } from '../lib/generators/html-css.js'
+import { buildHtmlCssPrompt, formatAnalysisContext } from '../lib/generators/html-css.js'
 import { buildVuePrompt } from '../lib/generators/vue.js'
 import { buildFlutterPrompt } from '../lib/generators/flutter.js'
 import { buildVariationsPrompt } from '../lib/generators/variations.js'
+import {
+  getTemplate,
+  recordTemplateSuccess,
+  recordTemplateFailure,
+} from '../lib/storage/prompt-templates.js'
+import { interpolateTemplate } from '../lib/ai/template-validator.js'
 import {
   ACTIONS,
   sendToSidePanel,
@@ -151,8 +157,21 @@ onAction(ACTIONS.GENERATE_CODE, async (payload) => {
   try {
     let fullResult = ''
     const prompt = buildPrompt(analysis)
-    // We need to call the API directly since callAI expects a type in PROMPT_BUILDERS
-    // Instead, use the low-level streaming functions
+
+    // Check for active custom prompt template
+    try {
+      const template = await getTemplate(format)
+      if (template && template.activePrompt) {
+        const contextStr = formatAnalysisContext(analysis)
+        prompt.system = interpolateTemplate(template.activePrompt, {
+          context: contextStr,
+          '{{context}}': contextStr,
+        })
+      }
+    } catch (tmplErr) {
+      console.warn('Failed to load custom template for format:', format, tmplErr)
+    }
+
     const settings = await getSettings()
     const messages = buildMessagesFromPrompt(prompt, null, settings.provider)
 
@@ -166,9 +185,11 @@ onAction(ACTIONS.GENERATE_CODE, async (payload) => {
       }
     }
 
+    await recordTemplateSuccess(format).catch(() => {})
     sendToSidePanel(ACTIONS.CODE_READY, { code: fullResult, format })
     logEvent(EVENTS.CODE_GENERATED)
   } catch (err) {
+    await recordTemplateFailure(format).catch(() => {})
     sendToSidePanel(ACTIONS.RESULT_ERROR, { error: err.message })
   }
 })
@@ -247,8 +268,10 @@ async function runFullUIAnalysis(region) {
       // Parse the JSON response
       const cleaned = fullAiResult.replace(/```(?:json)?\n?/g, '').replace(/```/g, '').trim()
       aiResult = JSON.parse(cleaned)
+      await recordTemplateSuccess('ui-analysis').catch(() => {})
     } catch (parseErr) {
-      // If JSON parsing fails, use fallback
+      // If JSON parsing fails, record template failure and use fallback
+      await recordTemplateFailure('ui-analysis').catch(() => {})
       aiResult = {
         style: { type: 'Other', confidence: 'low', description: 'Could not analyze style' },
         components: [],

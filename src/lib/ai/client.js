@@ -15,6 +15,12 @@ import {
 } from './prompts/image-analyze.js'
 import { buildUIRecreatePrompt } from './prompts/ui-recreate.js'
 import { buildUIAnalysisFullPrompt } from './prompts/ui-analysis-full.js'
+import {
+  getTemplate,
+  recordTemplateSuccess,
+  recordTemplateFailure,
+} from '../storage/prompt-templates.js'
+import { interpolateTemplate } from './template-validator.js'
 
 // ─── Prompt Router ───────────────────────────────────────────────────────────
 
@@ -271,12 +277,57 @@ export async function* callAI({ type, text = '', imageBase64 = null, meta = {} }
   }
 
   const prompt = buildPrompt(text, meta)
+
+  // Map action type to template ID
+  const typeToTemplateId = {
+    'explain-text': 'text',
+    'analyze-image': 'image',
+    'ui-analysis-full': 'ui-analysis',
+  }
+
+  const templateId = typeToTemplateId[type]
+  let activeTemplate = null
+
+  if (templateId) {
+    try {
+      activeTemplate = await getTemplate(templateId)
+      if (activeTemplate && activeTemplate.activePrompt) {
+        const vars = {
+          selection: text,
+          '{{selection}}': text,
+          image: meta?.imageUrl || meta?.description || 'Screenshot image provided',
+          '{{image}}': meta?.imageUrl || meta?.description || 'Screenshot image provided',
+          context: meta?.pageUrl || meta?.pageTitle
+            ? `(Context: ${meta.pageTitle || 'Webpage'} — ${meta.pageUrl || ''})`
+            : '',
+          '{{context}}': meta?.pageUrl || meta?.pageTitle
+            ? `(Context: ${meta.pageTitle || 'Webpage'} — ${meta.pageUrl || ''})`
+            : '',
+        }
+        prompt.system = interpolateTemplate(activeTemplate.activePrompt, vars)
+      }
+    } catch (templateErr) {
+      console.warn('Failed to load custom template, using default:', templateErr)
+    }
+  }
+
   const messages = buildMessages(prompt, imageBase64, provider)
 
-  if (provider === AI_PROVIDERS.ANTHROPIC) {
-    yield* streamAnthropic(apiKey, model, messages)
-  } else {
-    yield* streamOpenAI(apiKey, model, messages)
+  try {
+    if (provider === AI_PROVIDERS.ANTHROPIC) {
+      yield* streamAnthropic(apiKey, model, messages)
+    } else {
+      yield* streamOpenAI(apiKey, model, messages)
+    }
+
+    if (templateId) {
+      await recordTemplateSuccess(templateId).catch(() => {})
+    }
+  } catch (err) {
+    if (templateId) {
+      await recordTemplateFailure(templateId).catch(() => {})
+    }
+    throw err
   }
 }
 
