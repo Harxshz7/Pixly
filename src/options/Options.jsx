@@ -4,6 +4,7 @@ import { AI_PROVIDERS, DEFAULT_MODELS } from '../lib/utils/constants.js'
 import ApiKeyField from './components/ApiKeyField.jsx'
 import DefaultFormatSelector from './components/DefaultFormatSelector.jsx'
 import HistorySettings from './components/HistorySettings.jsx'
+import TemplateManager from './components/TemplateManager.jsx'
 
 const PROVIDER_OPTIONS = [
   {
@@ -195,6 +196,12 @@ export default function Options() {
               ))}
             </div>
           </div>
+        </div>
+
+        {/* ─── Prompt Templates Section ─────────────────── */}
+        <div className="options-section">
+          <h2 className="options-section-title">Prompt Templates</h2>
+          <TemplateManager />
         </div>
 
         {/* ─── History Section ──────────────────────────── */}
