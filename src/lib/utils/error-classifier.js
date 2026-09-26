@@ -53,6 +53,16 @@ export function classifyError(error) {
     }
   }
 
+  // Image too large
+  if (lower.includes('too large') || lower.includes('image size') || lower.includes('payload too large') || lower.includes('413') || lower.includes('exceeds') || lower.includes('max_image_size')) {
+    return {
+      type: 'image-too-large',
+      title: 'Image Too Large',
+      message: 'The selected image or region is too large. Try selecting a smaller area.',
+      action: null,
+    }
+  }
+
   // Parse / malformed response
   if (lower.includes('json') || lower.includes('parse') || lower.includes('malformed') || lower.includes('unexpected token')) {
     return {

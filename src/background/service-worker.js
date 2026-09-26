@@ -27,6 +27,7 @@ import {
   sendToTab,
   onAction,
 } from '../lib/utils/messaging.js'
+import { logEvent, logError, EVENTS } from '../lib/telemetry/event-log.js'
 
 // ─── Context Menu Setup ───────────────────────────────────────────────────────
 
@@ -166,6 +167,7 @@ onAction(ACTIONS.GENERATE_CODE, async (payload) => {
     }
 
     sendToSidePanel(ACTIONS.CODE_READY, { code: fullResult, format })
+    logEvent(EVENTS.CODE_GENERATED)
   } catch (err) {
     sendToSidePanel(ACTIONS.RESULT_ERROR, { error: err.message })
   }
@@ -203,6 +205,7 @@ onAction(ACTIONS.GENERATE_VARIATIONS, async (payload) => {
     }
 
     sendToSidePanel(ACTIONS.VARIATIONS_READY, { variations })
+    logEvent(EVENTS.VARIATIONS_GENERATED)
   } catch (err) {
     sendToSidePanel(ACTIONS.RESULT_ERROR, { error: err.message })
   }
@@ -265,6 +268,7 @@ async function runFullUIAnalysis(region) {
     }
 
     sendToSidePanel(ACTIONS.ANALYSIS_READY, { analysis })
+    logEvent(EVENTS.BOX_ANALYZED)
   } catch (err) {
     sendToSidePanel(ACTIONS.RESULT_ERROR, { error: err.message })
   }
@@ -286,6 +290,12 @@ async function runAnalysis(action, aiParams, meta = {}) {
       pageUrl: meta.pageUrl || null,
       pageTitle: meta.pageTitle || null,
     })
+    // Log event based on action type
+    const eventMap = {
+      'explain-text': EVENTS.TEXT_ANALYZED,
+      'analyze-image': EVENTS.IMAGE_ANALYZED,
+    }
+    if (eventMap[action]) logEvent(eventMap[action])
   } catch (err) {
     sendToSidePanel(ACTIONS.RESULT_ERROR, { error: err.message, action })
   }

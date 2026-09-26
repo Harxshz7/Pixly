@@ -1,5 +1,6 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useEffect } from 'react'
 import { classifyError } from '../../lib/utils/error-classifier.js'
+import { logError } from '../../lib/telemetry/event-log.js'
 
 const ERROR_ICONS = {
   'no-api-key': '🔑',
@@ -16,6 +17,11 @@ const ERROR_ICONS = {
 export default function ErrorState({ error }) {
   const classified = classifyError(error)
   const icon = ERROR_ICONS[classified.type] || '❌'
+
+  // Log the error event
+  useEffect(() => {
+    logError(classified.type)
+  }, [classified.type])
 
   const handleAction = useCallback(() => {
     if (classified.action?.action === 'open-options') {

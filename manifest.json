@@ -6,7 +6,6 @@
   "permissions": [
     "activeTab",
     "storage",
-    "scripting",
     "contextMenus",
     "sidePanel",
     "downloads"

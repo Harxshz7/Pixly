@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import { exportToMarkdown, downloadFile } from '../../lib/generators/markdown-export.js'
+import { logEvent, EVENTS } from '../../lib/telemetry/event-log.js'
 
 /**
  * ExportButton — exports a result as a .md file download.
@@ -19,6 +20,7 @@ export default function ExportButton({ entry, small = false, className = '' }) {
       // Sanitize filename
       const safeName = title.replace(/[^a-zA-Z0-9-_ ]/g, '').trim().slice(0, 60) || 'pixly-analysis'
       await downloadFile(markdown, safeName)
+      logEvent(EVENTS.EXPORT_USED)
     } catch (err) {
       console.error('Export failed:', err)
     } finally {
