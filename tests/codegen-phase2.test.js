@@ -14,8 +14,7 @@ import { generateHtmlCss } from '../src/lib/generators/html-css.js'
 import { generateVue } from '../src/lib/generators/vue.js'
 import { generateFlutter } from '../src/lib/generators/flutter.js'
 
-import { validateGeneratedCode } from '../src/lib/utils/code-validator.js'
-import { parseCodeBlocks } from '../src/sidepanel/components/CodeBlock.jsx'
+import { validateGeneratedCode, parseCodeBlocks } from '../src/lib/utils/code-validator.js'
 
 const sampleAnalysis = {
   style: { type: 'Glassmorphism', confidence: 'high', description: 'Translucent card' },

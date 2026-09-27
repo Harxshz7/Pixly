@@ -1,5 +1,7 @@
 // Pixly Phase 2 — Code Validation Utility
-// Lightweight syntax and structure validator for generated code.
+// Lightweight syntax and structural validator for generated code.
+
+import { detectLanguage } from './highlighter.js'
 
 /**
  * Validate generated code for balanced brackets, tags, and structure.
@@ -46,17 +48,51 @@ export function validateGeneratedCode(code, format) {
   }
 
   if (format === 'react-tailwind') {
-    // Check for common JSX issue: using class="..." instead of className="..."
-    if (/\bclass="[^"]*"/.test(trimmed) && !trimmed.includes('className=')) {
-      // Warning or mild invalid, but let's check for unclosed JSX tags
-      const tagCheck = checkBalancedTags(trimmed)
-      if (!tagCheck.isValid) {
-        return tagCheck
-      }
+    const tagCheck = checkBalancedTags(trimmed)
+    if (!tagCheck.isValid) {
+      return tagCheck
     }
   }
 
   return { isValid: true }
+}
+
+/**
+ * Parse code string into one or more code blocks if markdown fences are present.
+ *
+ * @param {string} code - Raw code string from AI
+ * @param {string} defaultFormat - Selected framework format
+ * @returns {Array<{ label: string, lang: string, code: string }>}
+ */
+export function parseCodeBlocks(code, defaultFormat = 'html-css') {
+  if (!code) return []
+
+  const fenceRegex = /```(\w*)\n([\s\S]*?)```/g
+  const blocks = []
+  let match
+
+  while ((match = fenceRegex.exec(code)) !== null) {
+    const rawLang = match[1]?.trim() || ''
+    const content = match[2]?.trim() || ''
+    if (content) {
+      blocks.push({
+        label: rawLang ? rawLang.toUpperCase() : defaultFormat.toUpperCase(),
+        lang: detectLanguage(rawLang || defaultFormat),
+        code: content,
+      })
+    }
+  }
+
+  // If no markdown fences found, treat entire string as single block
+  if (blocks.length === 0 && code.trim()) {
+    blocks.push({
+      label: defaultFormat.toUpperCase(),
+      lang: detectLanguage(defaultFormat),
+      code: code.trim(),
+    })
+  }
+
+  return blocks
 }
 
 /**
@@ -103,7 +139,6 @@ function checkBalancedTags(html) {
     'path', 'circle', 'rect', 'line', 'polyline', 'polygon',
   ])
 
-  // Regex to match HTML tags
   const tagRegex = /<\/?([a-zA-Z0-9-]+)(?:\s+[^>]*?)?(\/?)>/g
   const stack = []
   let match
@@ -112,14 +147,11 @@ function checkBalancedTags(html) {
     const [fullTag, tagName, selfClosing] = match
     const lowerName = tagName.toLowerCase()
 
-    // Skip comments or doctype
     if (fullTag.startsWith('<!--') || fullTag.startsWith('<!')) continue
 
-    // Void or self-closing tags
     if (selfClosing === '/' || voidElements.has(lowerName)) continue
 
     if (fullTag.startsWith('</')) {
-      // Closing tag
       if (stack.length === 0) {
         return { isValid: false, reason: `Unexpected closing tag </${tagName}>.` }
       }
@@ -128,7 +160,6 @@ function checkBalancedTags(html) {
         return { isValid: false, reason: `Mismatched HTML tag: expected </${last}> but found </${tagName}>.` }
       }
     } else {
-      // Opening tag
       stack.push(tagName)
     }
   }

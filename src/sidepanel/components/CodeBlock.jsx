@@ -1,45 +1,9 @@
 import React, { useState, useCallback } from 'react'
-import { highlightCode, detectLanguage } from '../../lib/utils/highlighter.js'
+import { highlightCode } from '../../lib/utils/highlighter.js'
 import { copyToClipboard } from '../../lib/utils/clipboard.js'
-import { validateGeneratedCode } from '../../lib/utils/code-validator.js'
+import { validateGeneratedCode, parseCodeBlocks } from '../../lib/utils/code-validator.js'
 
-/**
- * Parse code string into one or more code blocks if markdown fences are present.
- *
- * @param {string} code - Raw code string from AI
- * @param {string} defaultFormat - Selected framework format
- * @returns {Array<{ label: string, lang: string, code: string }>}
- */
-export function parseCodeBlocks(code, defaultFormat) {
-  if (!code) return []
-
-  const fenceRegex = /```(\w*)\n([\s\S]*?)```/g
-  const blocks = []
-  let match
-
-  while ((match = fenceRegex.exec(code)) !== null) {
-    const rawLang = match[1]?.trim() || ''
-    const content = match[2]?.trim() || ''
-    if (content) {
-      blocks.push({
-        label: rawLang ? rawLang.toUpperCase() : defaultFormat.toUpperCase(),
-        lang: detectLanguage(rawLang || defaultFormat),
-        code: content,
-      })
-    }
-  }
-
-  // If no markdown fences found, treat entire string as single block
-  if (blocks.length === 0 && code.trim()) {
-    blocks.push({
-      label: defaultFormat.toUpperCase(),
-      lang: detectLanguage(defaultFormat),
-      code: code.trim(),
-    })
-  }
-
-  return blocks
-}
+export { parseCodeBlocks }
 
 /**
  * CodeBlock Component — Syntax-highlighted display, clipboard buttons (single & copy-all),
