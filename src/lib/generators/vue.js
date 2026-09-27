@@ -1,40 +1,32 @@
 // Pixly Phase 2 — Vue Code Generator
-// Takes structured analysis and produces a prompt for Vue SFC generation.
+// Takes structured analysis and produces Vue SFC code or prompt template.
 
-import { formatAnalysisContext } from './html-css.js'
+import { getVuePrompt } from '../ai/prompts/codegen-prompts.js'
 
 /**
- * Build a prompt for generating a Vue SFC from structured UI analysis.
+ * Build a prompt object for Vue SFC generation.
  *
  * @param {object} analysis - The structured analysis object
  * @returns {object} Prompt object with system and messages
  */
 export function buildVuePrompt(analysis) {
-  const context = formatAnalysisContext(analysis)
-
-  return {
-    system: `You are Pixly, a senior Vue developer. Generate a Vue 3 Single File Component (SFC) that recreates the analyzed UI section.
-
-Rules:
-- Use Vue 3 <script setup> syntax
-- Use scoped <style> with scoped attribute
-- Map the provided color palette to CSS custom properties
-- Use semantic HTML elements
-- Include responsive styles
-- Do NOT use any CSS framework — use plain CSS within the SFC
-
-Output format — return the code in a single code block:
-\`\`\`vue
-<!-- Vue SFC -->
-\`\`\`
-
-Be concise but complete.`,
-
-    messages: [
-      {
-        role: 'user',
-        content: `Recreate this UI as a Vue 3 SFC.\n\n${context}`,
-      },
-    ],
-  }
+  return getVuePrompt(analysis)
 }
+
+/**
+ * Primary generator function for Vue 3 SFC.
+ * Takes structured analysis object and returns generated code as a string (via AI runner if provided).
+ *
+ * @param {object} analysis - The structured analysis object
+ * @param {object} [options] - Optional execution options / AI runner override
+ * @returns {Promise<string>|object} Generated code string or prompt object
+ */
+export async function generateVue(analysis, options = {}) {
+  if (options.aiRunner && typeof options.aiRunner === 'function') {
+    const prompt = getVuePrompt(analysis)
+    return await options.aiRunner(prompt)
+  }
+  return getVuePrompt(analysis)
+}
+
+export default generateVue
