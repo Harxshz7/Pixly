@@ -1,13 +1,12 @@
-import React, { useRef, useState, useCallback } from 'react'
+import React, { useRef } from 'react'
 import CopyButton from './CopyButton.jsx'
 import ColorPalette from './ColorPalette.jsx'
 import TypographyPanel from './TypographyPanel.jsx'
 import ComponentBreakdown from './ComponentBreakdown.jsx'
 import DesignTokens from './DesignTokens.jsx'
 import FormatSelector from './FormatSelector.jsx'
+import CodeBlock from './CodeBlock.jsx'
 import VariationsPanel from './VariationsPanel.jsx'
-import { highlightCode, detectLanguage } from '../../lib/utils/highlighter.js'
-import { copyToClipboard } from '../../lib/utils/clipboard.js'
 
 const ACTION_BADGES = {
   'explain-text': { label: 'Text Explanation', icon: '📝' },
@@ -45,35 +44,6 @@ function renderMarkdown(text) {
 }
 
 /**
- * Code block with syntax highlighting and copy button.
- */
-function CodeBlock({ code, format }) {
-  const [copied, setCopied] = useState(false)
-  const lang = detectLanguage(format)
-
-  const handleCopy = useCallback(async () => {
-    const success = await copyToClipboard(code)
-    if (success) {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }, [code])
-
-  if (!code) return <div className="code-loading">Generating code...</div>
-
-  return (
-    <div className="code-block-wrapper">
-      <button className="code-copy-btn" onClick={handleCopy} title="Copy code">
-        {copied ? '✓ Copied' : 'Copy'}
-      </button>
-      <pre className="code-block">
-        <code dangerouslySetInnerHTML={{ __html: highlightCode(code, lang) }} />
-      </pre>
-    </div>
-  )
-}
-
-/**
  * ResultView — displays either raw text (Phase 1) or structured analysis (Phase 2).
  */
 export default function ResultView({
@@ -85,6 +55,7 @@ export default function ResultView({
   variations,
   onFormatChange,
   onGenerateVariations,
+  onRetryCode,
 }) {
   const contentRef = useRef(null)
 
@@ -127,7 +98,11 @@ export default function ResultView({
         <div className="analysis-section">
           <h3 className="analysis-section-title">Code Output</h3>
           <FormatSelector selected={codeFormat} onSelect={onFormatChange} />
-          <CodeBlock code={codeResult} format={codeFormat} />
+          <CodeBlock
+            code={codeResult}
+            format={codeFormat}
+            onRetry={onRetryCode || (() => onFormatChange(codeFormat))}
+          />
         </div>
 
         {/* Variations */}
