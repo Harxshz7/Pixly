@@ -5,6 +5,7 @@ import ErrorState from './components/ErrorState.jsx'
 import EmptyState from './components/EmptyState.jsx'
 import HistoryList from './components/HistoryList.jsx'
 import ExportButton from './components/ExportButton.jsx'
+import { getSessionFormat, setSessionFormat } from './components/FormatSelector.jsx'
 import { ACTIONS, createMessage } from '../lib/utils/messaging.js'
 import { getAllSettings } from '../lib/storage/settings.js'
 import { saveToHistory, updateHistoryEntry } from '../lib/storage/history.js'
@@ -26,12 +27,12 @@ export default function App() {
   // Phase 2 state (structured analysis)
   const [analysisData, setAnalysisData] = useState(null)
   const [codeResult, setCodeResult] = useState(null)
-  const [codeFormat, setCodeFormat] = useState('html-css')
+  const [codeFormat, setCodeFormat] = useState(() => getSessionFormat('react-tailwind'))
   const [variationsData, setVariationsData] = useState(null)
 
   // Phase 3 state
   const [historyId, setHistoryId] = useState(null) // ID of the current result in history
-  const [defaultFormat, setDefaultFormat] = useState('html-css')
+  const [defaultFormat, setDefaultFormat] = useState('react-tailwind')
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0) // Force HistoryList to re-mount
 
   // Phase 4b state (safe fallback alert for custom prompt templates)
@@ -40,7 +41,10 @@ export default function App() {
   // Load settings on mount + apply theme + check template health
   useEffect(() => {
     getAllSettings().then((settings) => {
-      setDefaultFormat(settings.defaultFormat || 'html-css')
+      const def = settings.defaultFormat || 'react-tailwind'
+      setDefaultFormat(def)
+      const sessionFmt = getSessionFormat(def)
+      setCodeFormat(sessionFmt)
       // Apply theme
       applyTheme(settings.theme || 'system')
     })
@@ -96,9 +100,19 @@ export default function App() {
         setLoadingAction(null)
         setAnalysisData(message.payload.analysis)
         setCodeResult(null)
-        setCodeFormat(defaultFormat)
+        const activeFmt = getSessionFormat(defaultFormat)
+        setCodeFormat(activeFmt)
         setVariationsData(null)
         setError(null)
+
+        // Automatically trigger code generation for the active session format
+        chrome.runtime.sendMessage(
+          createMessage(ACTIONS.GENERATE_CODE, {
+            format: activeFmt,
+            analysis: message.payload.analysis,
+          })
+        )
+
         // Auto-save to history
         autoSaveToHistory({
           type: 'ui',
@@ -154,7 +168,8 @@ export default function App() {
     setRawResultAction(null)
     setAnalysisData(null)
     setCodeResult(null)
-    setCodeFormat(defaultFormat)
+    const activeFmt = getSessionFormat(defaultFormat)
+    setCodeFormat(activeFmt)
     setVariationsData(null)
     setLoading(false)
     setLoadingAction(null)
@@ -178,15 +193,30 @@ export default function App() {
   }, [])
 
   const handleFormatChange = useCallback((format) => {
+    setSessionFormat(format)
     setCodeFormat(format)
     setCodeResult(null)
-    chrome.runtime.sendMessage(
-      createMessage(ACTIONS.GENERATE_CODE, {
-        format,
-        analysis: analysisData,
-      })
-    )
+    if (analysisData) {
+      chrome.runtime.sendMessage(
+        createMessage(ACTIONS.GENERATE_CODE, {
+          format,
+          analysis: analysisData,
+        })
+      )
+    }
   }, [analysisData])
+
+  const handleRetryCode = useCallback(() => {
+    if (analysisData && codeFormat) {
+      setCodeResult(null)
+      chrome.runtime.sendMessage(
+        createMessage(ACTIONS.GENERATE_CODE, {
+          format: codeFormat,
+          analysis: analysisData,
+        })
+      )
+    }
+  }, [analysisData, codeFormat])
 
   const handleGenerateVariations = useCallback(() => {
     setVariationsData(null)
@@ -307,6 +337,7 @@ export default function App() {
               variations={variationsData}
               onFormatChange={handleFormatChange}
               onGenerateVariations={handleGenerateVariations}
+              onRetryCode={handleRetryCode}
             />
             <div className="result-actions">
               <ExportButton entry={currentExportEntry} />
