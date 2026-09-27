@@ -23,9 +23,8 @@ export function validateGeneratedCode(code, format) {
     return bracketCheck
   }
 
-  // 2. Format-specific validation rules
+  // 2. Vue SFC container check
   if (format === 'vue') {
-    // Vue SFC must contain <template> tag or template block if code blocks are used
     if (trimmed.includes('<template') && !trimmed.includes('</template>')) {
       return { isValid: false, reason: 'Vue SFC missing closing </template> tag.' }
     }
@@ -37,20 +36,14 @@ export function validateGeneratedCode(code, format) {
     }
   }
 
-  if (format === 'html-css' || format === 'html') {
+  // 3. HTML / JSX / Vue Tag balancing test
+  if (format === 'html-css' || format === 'html' || format === 'vue' || format === 'react-tailwind') {
     const htmlPart = extractHtmlPart(trimmed)
     if (htmlPart) {
       const tagCheck = checkBalancedTags(htmlPart)
       if (!tagCheck.isValid) {
         return tagCheck
       }
-    }
-  }
-
-  if (format === 'react-tailwind') {
-    const tagCheck = checkBalancedTags(trimmed)
-    if (!tagCheck.isValid) {
-      return tagCheck
     }
   }
 
@@ -139,11 +132,16 @@ function checkBalancedTags(html) {
     'path', 'circle', 'rect', 'line', 'polyline', 'polygon',
   ])
 
+  // Clean scripts and styles before checking HTML tags to avoid CSS/JS selectors breaking tag check
+  const cleanedHtml = html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+
   const tagRegex = /<\/?([a-zA-Z0-9-]+)(?:\s+[^>]*?)?(\/?)>/g
   const stack = []
   let match
 
-  while ((match = tagRegex.exec(html)) !== null) {
+  while ((match = tagRegex.exec(cleanedHtml)) !== null) {
     const [fullTag, tagName, selfClosing] = match
     const lowerName = tagName.toLowerCase()
 
@@ -173,5 +171,8 @@ function checkBalancedTags(html) {
 
 function extractHtmlPart(text) {
   const match = text.match(/```html\n([\s\S]*?)```/)
-  return match ? match[1] : text
+  if (match) return match[1]
+  const vueTemplateMatch = text.match(/<template[\s\S]*?>([\s\S]*?)<\/template>/)
+  if (vueTemplateMatch) return vueTemplateMatch[1]
+  return text
 }
