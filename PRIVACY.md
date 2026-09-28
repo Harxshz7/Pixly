@@ -1,35 +1,73 @@
-# Pixly — Privacy Surface Summary
+# Pixly — Privacy Policy & Data Surface Summary
 
-## Data That Leaves the Machine
+**Effective Date:** September 28, 2026  
+**Version:** 1.2.0
 
-Pixly makes API calls to **one** external service at a time, chosen by the user:
+Pixly is designed from the ground up to be **100% private, local-first, and zero-telemetry**. We do not operate tracking servers, telemetry backends, or data collection infrastructure.
+
+---
+
+## 1. Data That Leaves Your Machine
+
+Pixly connects directly and exclusively to the AI provider endpoint you configure (Bring Your Own Key — BYOK model):
 
 - **Anthropic API** (`https://api.anthropic.com/v1/messages`) — when using Claude models
 - **OpenAI API** (`https://api.openai.com/v1/chat/completions`) — when using GPT models
 
-These calls include:
-- The user's API key (stored locally, never sent elsewhere)
-- Selected text, image data URLs, or screenshot regions that the user explicitly chooses to analyze
-- System prompts for analysis/code generation (no user PII)
+### What is transmitted during an analysis request:
+1. **Your API Key:** Sent in HTTPS authorization headers directly to your selected AI provider (Anthropic or OpenAI). It is never sent to any intermediary server.
+2. **User-Selected Content:**
+   - Text explicitly selected and submitted via the floating "Explain" action.
+   - Images explicitly chosen via the right-click "Analyze with Pixly" context menu.
+   - Screen pixel regions explicitly selected using the Draw-Box capture overlay tool.
+3. **System Prompts:** Standard or user-customized design analysis and code generation prompt instructions.
 
-**No other network requests are made.** There is no analytics service, no crash reporting, no telemetry server.
+**No other network requests are ever made.** Pixly contains zero third-party analytics scripts, zero error tracking SDKs (e.g., Sentry), and zero external CDN trackers.
 
-## Data Stored Locally
+---
 
-All data is stored via `chrome.storage.local` and never leaves the device:
+## 2. Data Stored Locally on Your Device
 
-| Data | Storage Key | Purpose |
-|------|-------------|---------|
-| API key | `pixly_api_key` | Authenticates with AI provider |
-| Provider/model | `pixly_ai_provider`, `pixly_ai_model` | User's chosen AI configuration |
-| Analysis history | `pixly_history` | Past results (text, images, UI analyses) |
-| Settings | `pixly_default_format`, `pixly_theme`, `pixly_history_limit` | User preferences |
-| Event counters | `pixly_event_log` | Local-only feature-usage counters (no PII, never transmitted) |
+All configuration, history, and custom prompt templates are saved locally in `chrome.storage.local` and `sessionStorage`:
 
-## What Is Never Collected or Transmitted
+| Storage Key | Storage Scope | Purpose & Description |
+|---|---|---|
+| `pixly_api_key` | `chrome.storage.local` | Securely stored API key for Anthropic or OpenAI. |
+| `pixly_ai_provider` | `chrome.storage.local` | User preference for AI provider (`anthropic` or `openai`). |
+| `pixly_ai_model` | `chrome.storage.local` | Selected AI model (e.g., `claude-3-5-sonnet-20241022`, `gpt-4o`). |
+| `pixly_default_format` | `chrome.storage.local` | Default code export format (`react-tailwind`, `html-css`, `vue`, `flutter`). |
+| `pixly_theme` | `chrome.storage.local` | Side panel UI theme mode (`dark`, `light`, `system`). |
+| `pixly_history_limit` | `chrome.storage.local` | User-configured maximum number of history items to keep (default: 50). |
+| `pixly_history` | `chrome.storage.local` | Local records of past analyses, generated code, design tokens, and favorites. |
+| `pixly_prompt_templates` | `chrome.storage.local` | Custom prompt templates created or modified by the user. |
+| `pixly_template_failures` | `chrome.storage.local` | Local error counter tracking custom template failures for safe default fallback. |
+| `pixly_event_log` | `chrome.storage.local` | Local circular buffer tracking feature counts (never transmitted off-device). |
+| `pixly_session_code_format`| `sessionStorage` | Ephemeral active framework tab selection for the current browser session. |
 
-- No browsing history or URLs (beyond what the user explicitly analyzes)
-- No personal information
-- No cookies or session tokens
-- No telemetry sent to any server
-- Event log counters are stored locally only and contain no identifying information
+---
+
+## 3. Chrome Permissions & Why They Are Needed
+
+| Permission | Justification |
+|---|---|
+| `activeTab` | Grants temporary access to capture only the visible viewport area when the user initiates a draw-box screen selection. |
+| `storage` | Stores your API keys, preferences, prompt templates, and analysis history locally on your machine. |
+| `contextMenus` | Adds convenient right-click context menu options to analyze images or explain text directly from any webpage. |
+| `sidePanel` | Displays the interactive design analysis workbench, token explorer, and code editor in Chrome's side panel. |
+| `downloads` | Enables one-click downloading of generated Markdown reports and code snippet files. |
+
+---
+
+## 4. What is NEVER Collected, Stored Remotely, or Transmitted
+
+- ❌ No browsing history or visited URLs (outside of explicit analysis captures).
+- ❌ No personally identifiable information (PII).
+- ❌ No browser cookies, session identifiers, or storage tokens from websites you visit.
+- ❌ No background screen recording or passive page listening.
+- ❌ No analytics or telemetry sent to first-party or third-party servers.
+
+---
+
+## 5. Contact & Questions
+
+If you have questions regarding this privacy policy, you can open an issue on the [Pixly GitHub Repository](https://github.com/Harxshz7/Pixly).
