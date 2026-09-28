@@ -6,8 +6,10 @@
 - **Short Description (max 132 chars):**
   Capture any webpage element, analyze visual styles, and instantly generate clean code in React, Tailwind, HTML/CSS, Vue, and Flutter.
 - **Category:** Developer Tools
+- **Version:** 1.2.0
 - **Language:** English
 - **Pricing:** Free (BYOK — Bring Your Own Key for Anthropic or OpenAI)
+- **Manifest Version:** Manifest V3
 
 ---
 
@@ -23,13 +25,15 @@ Pixly is the ultimate design-to-code companion for frontend developers, UI/UX de
 • 📦 Box Capture & Visual Extraction: Draw a box around any UI component (buttons, cards, navigation, forms, hero sections) to analyze layout, spacing scales, border radiuses, and shadow definitions.
 • 🎨 Palette & Theme Extraction: Deterministically extracts color hex codes with contrast data and auto-detects light vs dark modes.
 • ⚡ Multi-Framework Code Generation:
-  - React + Tailwind CSS
-  - Semantic HTML5 + Modern CSS
-  - Vue 3 (Composition API, <script setup>, scoped CSS)
+  - React + Tailwind CSS (functional components, clean JSX, standard Tailwind v3 utilities)
+  - Semantic HTML5 + Modern CSS (:root custom properties and flex/grid layouts)
+  - Vue 3 SFC (Composition API, <script setup>, scoped CSS)
   - Flutter (StatelessWidget/StatefulWidget, Material Design)
 • 🔄 Zero-Cost Format Switching: Switch between React, Vue, HTML, and Flutter without re-running vision analysis.
+• 🛡️ Syntax Validation & Resilient Code Display: Built-in bracket/tag balancing pass before rendering, with raw fallback and one-click retry for malformed outputs.
+• ✨ Instant Design Variations: Generate alternative styles (Dark Mode, Minimalist, Glassmorphic, High Contrast) in one click.
 • 🛠️ Customizable System Prompt Templates: Customize and fine-tune system prompts for every analysis type with live variable validation ({{selection}}, {{image}}, {{context}}) and automatic safe fallback.
-• 📂 History, Favorites & Export: Auto-saves analysis history locally, pin your favorites to top, search past captures, and export full reports as Markdown.
+• 📂 History, Favorites & Markdown Export: Auto-saves analysis history locally, pin your favorites to top, search past captures, and export full reports as Markdown (.md).
 • 🔒 100% Private & Local-First: Your API keys and history never leave your machine. No telemetry servers, no third-party trackers, no analytics services. Direct HTTPS calls to Anthropic or OpenAI only.
 
 ### ⌨️ Keyboard Shortcuts
@@ -53,7 +57,7 @@ Keys are securely stored in your local browser storage (`chrome.storage.local`).
 Copy and paste these justifications directly into the Chrome Web Store Developer Dashboard:
 
 | Permission | One-Line Justification |
-|------------|------------------------|
+|---|---|
 | `activeTab` | Required to capture visible webpage regions selected by the user via the draw-box capture tool. |
 | `storage` | Required to persist user preferences, API keys, analysis history, and prompt templates locally on the user's device. |
 | `contextMenus` | Provides quick right-click context menu shortcuts ("Explain selected text" and "Analyze this image"). |
