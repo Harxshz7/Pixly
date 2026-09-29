@@ -25,19 +25,23 @@ export function debounce(fn, ms = 200) {
 
 /**
  * Filter history entries by a search query.
- * Matches against snippet, result, pageUrl, pageTitle, analysis metadata.
+ * Matches against snippet, result, codeResult, pageUrl, pageTitle, analysis metadata.
  *
  * @param {Array} entries - History entries
  * @param {string} query - Search query
  * @returns {Array} Filtered entries
  */
-export function filterEntries(entries, query) {
+export function filterEntries(entries = [], query = '') {
   if (!query || !query.trim()) return entries
   const q = query.toLowerCase().trim()
   return entries.filter((entry) => {
     const fields = [
       entry.snippet,
+      entry.snippet_or_thumbnail,
       entry.result,
+      entry.codeResult,
+      entry.codeFormat,
+      entry.format,
       entry.pageUrl,
       entry.pageTitle,
       entry.analysis?.style?.type,
@@ -52,14 +56,17 @@ export function filterEntries(entries, query) {
 }
 
 /**
- * Group entries by type.
+ * Group entries by type (Text / Image / UI).
+ * Maps 'box' to 'ui'.
+ *
  * @param {Array} entries
  * @returns {Object} { text: [...], image: [...], ui: [...] }
  */
-export function groupByType(entries) {
+export function groupByType(entries = []) {
   const groups = { text: [], image: [], ui: [] }
   for (const entry of entries) {
-    const key = entry.type || 'text'
+    const rawType = (entry.type || 'text').toLowerCase()
+    const key = rawType === 'box' ? 'ui' : rawType
     if (groups[key]) {
       groups[key].push(entry)
     } else {
@@ -75,6 +82,7 @@ export function groupByType(entries) {
  * @returns {string}
  */
 export function formatTimestamp(timestamp) {
+  if (!timestamp) return ''
   const now = Date.now()
   const diff = now - timestamp
   const seconds = Math.floor(diff / 1000)
@@ -93,3 +101,4 @@ export function formatTimestamp(timestamp) {
     year: days > 365 ? 'numeric' : undefined,
   })
 }
+

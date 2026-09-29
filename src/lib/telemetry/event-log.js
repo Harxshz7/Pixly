@@ -16,11 +16,12 @@ export const EVENTS = {
   EXPORT_USED: 'export_used',
   FAVORITE_TOGGLED: 'favorite_toggled',
   HISTORY_CLEARED: 'history_cleared',
-  ERROR_NO_API_KEY: 'error_no_api_key',
-  ERROR_INVALID_KEY: 'error_invalid_key',
-  ERROR_RATE_LIMIT: 'error_rate_limit',
+  CODEGEN_FRAMEWORK: (framework) => `codegen_${framework}_used`,
+  ERROR_NO_API_KEY: 'error_no-api-key',
+  ERROR_INVALID_KEY: 'error_invalid-api-key',
+  ERROR_RATE_LIMIT: 'error_rate-limit',
   ERROR_NETWORK: 'error_network',
-  ERROR_PARSE: 'error_parse',
+  ERROR_PARSE: 'error_parse-error',
   ERROR_UNKNOWN: 'error_unknown',
 }
 
@@ -30,11 +31,12 @@ export const EVENTS = {
  */
 async function readLog() {
   try {
-    const result = await chrome.storage.local.get(EVENT_LOG_KEY)
-    return result[EVENT_LOG_KEY] || {}
-  } catch {
-    return {}
-  }
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      const result = await chrome.storage.local.get(EVENT_LOG_KEY)
+      return result[EVENT_LOG_KEY] || {}
+    }
+  } catch {}
+  return {}
 }
 
 /**
@@ -42,16 +44,19 @@ async function readLog() {
  * @param {Object} log - Event counters object
  */
 async function writeLog(log) {
-  await chrome.storage.local.set({ [EVENT_LOG_KEY]: log })
+  if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+    await chrome.storage.local.set({ [EVENT_LOG_KEY]: log })
+  }
 }
 
 /**
  * Increment a local event counter.
  * Fire-and-forget — never blocks the caller, never throws.
  *
- * @param {string} eventName - One of EVENTS
+ * @param {string} eventName - Counter key (e.g. 'text_analyzed', 'codegen_react-tailwind_used')
  */
 export function logEvent(eventName) {
+  if (!eventName) return
   // Fire-and-forget: don't await, don't block the caller
   readLog()
     .then((log) => {
@@ -65,26 +70,30 @@ export function logEvent(eventName) {
 }
 
 /**
- * Log an error event based on its classified type.
- * Maps error types from error-classifier to event names.
+ * Helper to log codegen usage by framework.
  *
- * @param {string} errorType - One of ERROR_TYPES from constants.js
+ * @param {string} framework - 'react-tailwind' | 'html-css' | 'vue' | 'flutter'
  */
-export function logError(errorType) {
-  const errorEventMap = {
-    'no-api-key': EVENTS.ERROR_NO_API_KEY,
-    'invalid-api-key': EVENTS.ERROR_INVALID_KEY,
-    'rate-limit': EVENTS.ERROR_RATE_LIMIT,
-    network: EVENTS.ERROR_NETWORK,
-    'parse-error': EVENTS.ERROR_PARSE,
-    unknown: EVENTS.ERROR_UNKNOWN,
+export function logCodegen(framework) {
+  if (framework) {
+    logEvent(`codegen_${framework}_used`)
   }
-  const event = errorEventMap[errorType] || EVENTS.ERROR_UNKNOWN
-  logEvent(event)
+  logEvent(EVENTS.CODE_GENERATED)
 }
 
 /**
- * Get all event counters (for debugging / future dashboard).
+ * Log an error event based on its classified type.
+ * Maps error types to event names e.g. error_rate-limit or error_unknown.
+ *
+ * @param {string} errorType - One of ERROR_TYPES
+ */
+export function logError(errorType) {
+  const sanitized = (errorType || 'unknown').toString().trim()
+  logEvent(`error_${sanitized}`)
+}
+
+/**
+ * Get all event counters (for debugging / future triage).
  * @returns {Promise<Object>}
  */
 export async function getEventLog() {
@@ -98,3 +107,4 @@ export async function getEventLog() {
 export async function resetEventLog() {
   await writeLog({})
 }
+

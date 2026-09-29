@@ -33,7 +33,7 @@ import {
   sendToTab,
   onAction,
 } from '../lib/utils/messaging.js'
-import { logEvent, logError, EVENTS } from '../lib/telemetry/event-log.js'
+import { logEvent, logError, logCodegen, EVENTS } from '../lib/telemetry/event-log.js'
 
 // ─── Context Menu Setup ───────────────────────────────────────────────────────
 
@@ -187,10 +187,11 @@ onAction(ACTIONS.GENERATE_CODE, async (payload) => {
 
     await recordTemplateSuccess(format).catch(() => {})
     sendToSidePanel(ACTIONS.CODE_READY, { code: fullResult, format })
-    logEvent(EVENTS.CODE_GENERATED)
+    logCodegen(format)
   } catch (err) {
     await recordTemplateFailure(format).catch(() => {})
     sendToSidePanel(ACTIONS.RESULT_ERROR, { error: err.message })
+    logError('codegen')
   }
 })
 

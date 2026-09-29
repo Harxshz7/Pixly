@@ -9,6 +9,7 @@ const TYPE_META = {
   text: { icon: '📝', label: 'Text' },
   image: { icon: '🖼️', label: 'Image' },
   ui: { icon: '🎨', label: 'UI' },
+  box: { icon: '📐', label: 'Box' },
 }
 
 /**
@@ -21,6 +22,7 @@ export default function HistoryItem({ entry, onDelete, onToggleFavorite }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const meta = TYPE_META[entry.type] || TYPE_META.text
+  const isFavorited = Boolean(entry.favorited ?? entry.favorite)
 
   const handleToggle = useCallback(() => {
     setExpanded((prev) => !prev)
@@ -78,11 +80,11 @@ export default function HistoryItem({ entry, onDelete, onToggleFavorite }) {
         </div>
         <div className="history-item-actions" onClick={(e) => e.stopPropagation()}>
           <button
-            className={`history-item-favorite ${entry.favorite ? 'history-item-favorite-active' : ''}`}
+            className={`history-item-favorite ${isFavorited ? 'history-item-favorite-active' : ''}`}
             onClick={handleFavorite}
-            title={entry.favorite ? 'Remove from favorites' : 'Add to favorites'}
+            title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
           >
-            {entry.favorite ? '★' : '☆'}
+            {isFavorited ? '★' : '☆'}
           </button>
           <ExportButton entry={entry} small />
           <button
@@ -98,10 +100,10 @@ export default function HistoryItem({ entry, onDelete, onToggleFavorite }) {
       {expanded && (
         <div className="history-item-body">
           {/* Thumbnail for image/UI types */}
-          {entry.thumbnail && (
+          {(entry.thumbnail || (typeof entry.snippet_or_thumbnail === 'string' && entry.snippet_or_thumbnail.startsWith('data:'))) && (
             <img
               className="history-item-thumbnail"
-              src={entry.thumbnail}
+              src={entry.thumbnail || entry.snippet_or_thumbnail}
               alt="Captured region"
             />
           )}
@@ -110,7 +112,7 @@ export default function HistoryItem({ entry, onDelete, onToggleFavorite }) {
             action={entry.type === 'text' ? 'explain-text' : entry.type === 'image' ? 'analyze-image' : 'ui-analysis-full'}
             analysis={entry.analysis}
             codeResult={entry.codeResult}
-            codeFormat={entry.codeFormat}
+            codeFormat={entry.codeFormat || entry.format}
             variations={entry.variations}
           />
         </div>

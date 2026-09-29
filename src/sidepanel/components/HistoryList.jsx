@@ -29,9 +29,11 @@ export default function HistoryList() {
   // Sort favorites to top, then by timestamp
   const sortWithFavorites = (list) => {
     return [...list].sort((a, b) => {
-      if (a.favorite && !b.favorite) return -1
-      if (!a.favorite && b.favorite) return 1
-      return b.timestamp - a.timestamp
+      const aFav = Boolean(a.favorited ?? a.favorite)
+      const bFav = Boolean(b.favorited ?? b.favorite)
+      if (aFav && !bFav) return -1
+      if (!aFav && bFav) return 1
+      return (b.timestamp || 0) - (a.timestamp || 0)
     })
   }
 
@@ -49,24 +51,29 @@ export default function HistoryList() {
     }
   }, [])
 
+  // Match type filter ('ui' also matches 'box')
+  const matchType = (entryType, filterKey) => {
+    if (filterKey === 'all') return true
+    if (filterKey === 'ui') return entryType === 'ui' || entryType === 'box'
+    return entryType === filterKey
+  }
+
   // Search handler
   const handleSearch = useCallback(
     async (query) => {
       const results = await searchHistory(query)
-      const filtered =
-        typeFilter === 'all' ? results : results.filter((e) => e.type === typeFilter)
-      setFilteredEntries(filtered)
+      const filtered = results.filter((e) => matchType(e.type, typeFilter))
+      setFilteredEntries(sortWithFavorites(filtered))
     },
     [typeFilter]
   )
 
   // Type filter
   const handleTypeFilter = useCallback(
-    async (key) => {
+    (key) => {
       setTypeFilter(key)
-      const all = entries
-      const filtered = key === 'all' ? all : all.filter((e) => e.type === key)
-      setFilteredEntries(filtered)
+      const filtered = entries.filter((e) => matchType(e.type, key))
+      setFilteredEntries(sortWithFavorites(filtered))
     },
     [entries]
   )
