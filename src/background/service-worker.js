@@ -34,6 +34,7 @@ import {
   onAction,
 } from '../lib/utils/messaging.js'
 import { logEvent, logError, logCodegen, EVENTS } from '../lib/telemetry/event-log.js'
+import { classifyError } from '../lib/errors/classifier.js'
 
 // ─── Context Menu Setup ───────────────────────────────────────────────────────
 
@@ -190,8 +191,9 @@ onAction(ACTIONS.GENERATE_CODE, async (payload) => {
     logCodegen(format)
   } catch (err) {
     await recordTemplateFailure(format).catch(() => {})
-    sendToSidePanel(ACTIONS.RESULT_ERROR, { error: err.message })
-    logError('codegen')
+    const classified = classifyError(err)
+    sendToSidePanel(ACTIONS.RESULT_ERROR, { error: classified, format })
+    logError(classified.state || classified.type)
   }
 })
 
@@ -229,7 +231,9 @@ onAction(ACTIONS.GENERATE_VARIATIONS, async (payload) => {
     sendToSidePanel(ACTIONS.VARIATIONS_READY, { variations })
     logEvent(EVENTS.VARIATIONS_GENERATED)
   } catch (err) {
-    sendToSidePanel(ACTIONS.RESULT_ERROR, { error: err.message })
+    const classified = classifyError(err)
+    sendToSidePanel(ACTIONS.RESULT_ERROR, { error: classified })
+    logError(classified.state || classified.type)
   }
 })
 
@@ -294,7 +298,9 @@ async function runFullUIAnalysis(region) {
     sendToSidePanel(ACTIONS.ANALYSIS_READY, { analysis })
     logEvent(EVENTS.BOX_ANALYZED)
   } catch (err) {
-    sendToSidePanel(ACTIONS.RESULT_ERROR, { error: err.message })
+    const classified = classifyError(err)
+    sendToSidePanel(ACTIONS.RESULT_ERROR, { error: classified })
+    logError(classified.state || classified.type)
   }
 }
 
@@ -321,9 +327,12 @@ async function runAnalysis(action, aiParams, meta = {}) {
     }
     if (eventMap[action]) logEvent(eventMap[action])
   } catch (err) {
-    sendToSidePanel(ACTIONS.RESULT_ERROR, { error: err.message, action })
+    const classified = classifyError(err)
+    sendToSidePanel(ACTIONS.RESULT_ERROR, { error: classified, action })
+    logError(classified.state || classified.type)
   }
 }
+
 
 // ─── Low-level helpers for direct API calls ──────────────────────────────────
 

@@ -246,8 +246,18 @@ export default function App() {
   const hasRawResult = rawResult !== null
   const state = loading ? 'loading' : error ? 'error' : hasAnalysis ? 'analysis' : hasRawResult ? 'result' : 'idle'
 
+  const handleRetry = useCallback(() => {
+    setError(null)
+    if (analysisData && codeFormat) {
+      handleRetryCode()
+    } else if (loadingAction === 'ui-analysis-full') {
+      handleDrawBox()
+    }
+  }, [analysisData, codeFormat, handleRetryCode, loadingAction, handleDrawBox])
+
   return (
     <div className="app">
+
       {/* Header */}
       <header className="app-header">
         <div className="app-logo">
@@ -257,7 +267,7 @@ export default function App() {
           Pixly
         </div>
         <div className="app-actions">
-          {(state === 'result' || state === 'analysis') && (
+          {(state === 'result' || state === 'analysis' || state === 'error') && (
             <button className="btn-icon" onClick={handleNewAnalysis} title="New analysis">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -316,7 +326,7 @@ export default function App() {
         )}
 
         {state === 'error' && (
-          <ErrorState error={error} />
+          <ErrorState error={error} onRetry={handleRetry} />
         )}
 
         {state === 'result' && (
