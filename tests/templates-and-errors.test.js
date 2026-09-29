@@ -97,10 +97,36 @@ test('error-classifier: classifies image-too-large errors properly', () => {
 test('error-classifier: classifies api key and rate limit errors', () => {
   const noKey = classifyError('API key not configured. Open Pixly options to add your key.')
   assert.equal(noKey.type, 'no-api-key')
+  assert.equal(noKey.state, 'NO_API_KEY')
+  assert.equal(noKey.actionType, 'open-options')
 
   const invalidKey = classifyError('Anthropic API error: 401 unauthorized')
   assert.equal(invalidKey.type, 'invalid-api-key')
+  assert.equal(invalidKey.state, 'INVALID_KEY')
+  assert.equal(invalidKey.actionType, 'open-options')
 
   const rateLimit = classifyError('OpenAI API error: 429 rate limit exceeded')
   assert.equal(rateLimit.type, 'rate-limit')
+  assert.equal(rateLimit.state, 'RATE_LIMITED')
+  assert.equal(rateLimit.actionType, 'retry')
 })
+
+test('error-classifier: classifies network, malformed response, and unknown errors', () => {
+  const networkErr = classifyError(new Error('TypeError: Failed to fetch'))
+  assert.equal(networkErr.state, 'NETWORK_FAILURE')
+  assert.equal(networkErr.actionType, 'retry')
+
+  const malformedErr = classifyError(new SyntaxError('Unexpected token < in JSON at position 0'))
+  assert.equal(malformedErr.state, 'MALFORMED_RESPONSE')
+  assert.equal(malformedErr.actionType, 'retry')
+
+  // Codegen validation failure object
+  const codegenValidationFail = classifyError({ isValid: false, reason: 'Unclosed div tag' })
+  assert.equal(codegenValidationFail.state, 'MALFORMED_RESPONSE')
+  assert.equal(codegenValidationFail.actionType, 'retry')
+
+  const unknownErr = classifyError('Some completely bizarre error')
+  assert.equal(unknownErr.state, 'UNKNOWN')
+  assert.equal(unknownErr.actionType, 'retry')
+})
+

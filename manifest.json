@@ -1,4 +1,5 @@
 {
+  "_comment": "Pixly Manifest V3 Permissions: activeTab (capturing selected region & active tab context), storage (local settings, history, prompt templates, and local usage counters), contextMenus (right-click analyze selection/image), sidePanel (Chrome Side Panel UI), downloads (exporting analysis reports as Markdown)",
   "manifest_version": 3,
   "name": "Pixly",
   "version": "1.2.0",
