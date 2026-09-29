@@ -1,33 +1,42 @@
 import React, { useCallback, useEffect } from 'react'
-import { classifyError } from '../../lib/utils/error-classifier.js'
+import { classifyError, ERROR_STATES } from '../../lib/errors/classifier.js'
 import { logError } from '../../lib/telemetry/event-log.js'
 
 const ERROR_ICONS = {
-  'no-api-key': '🔑',
-  'invalid-api-key': '⚠️',
-  'rate-limit': '⏱️',
-  network: '🌐',
-  'parse-error': '🔧',
-  unknown: '❌',
+  [ERROR_STATES.NO_API_KEY]: '🔑',
+  [ERROR_STATES.INVALID_KEY]: '⚠️',
+  [ERROR_STATES.RATE_LIMITED]: '⏱️',
+  [ERROR_STATES.NETWORK_FAILURE]: '🌐',
+  [ERROR_STATES.MALFORMED_RESPONSE]: '🔧',
+  [ERROR_STATES.IMAGE_TOO_LARGE]: '📐',
+  [ERROR_STATES.UNKNOWN]: '❌',
 }
 
 /**
- * ErrorState — displays a classified error with an actionable message and optional button.
+ * ErrorState — displays a classified error with an actionable message and button.
+ *
+ * @param {object} props
+ * @param {Error|string|object} props.error - Raw or classified error
+ * @param {Function} [props.onRetry] - Retry callback function
  */
-export default function ErrorState({ error }) {
+export default function ErrorState({ error, onRetry }) {
   const classified = classifyError(error)
-  const icon = ERROR_ICONS[classified.type] || '❌'
+  const icon = ERROR_ICONS[classified.state] || '❌'
 
-  // Log the error event
+  // Log the classified error event
   useEffect(() => {
-    logError(classified.type)
-  }, [classified.type])
+    logError(classified.state || classified.type)
+  }, [classified.state, classified.type])
 
   const handleAction = useCallback(() => {
-    if (classified.action?.action === 'open-options') {
-      chrome.runtime.openOptionsPage()
+    if (classified.actionType === 'open-options') {
+      if (typeof chrome !== 'undefined' && chrome.runtime?.openOptionsPage) {
+        chrome.runtime.openOptionsPage()
+      }
+    } else if (classified.actionType === 'retry' && onRetry) {
+      onRetry()
     }
-  }, [classified])
+  }, [classified.actionType, onRetry])
 
   return (
     <div className="error-state">
@@ -36,11 +45,17 @@ export default function ErrorState({ error }) {
         <strong className="error-state-title">{classified.title}</strong>
       </div>
       <p className="error-state-message">{classified.message}</p>
-      {classified.action && (
+      {classified.actionType === 'open-options' && (
         <button className="btn btn-primary error-state-action" onClick={handleAction}>
-          {classified.action.label}
+          {classified.actionLabel || 'Open Settings'}
+        </button>
+      )}
+      {classified.actionType === 'retry' && onRetry && (
+        <button className="btn btn-secondary error-state-action" onClick={handleAction}>
+          {classified.actionLabel || 'Try Again'}
         </button>
       )}
     </div>
   )
 }
+
