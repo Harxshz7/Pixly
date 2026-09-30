@@ -86,6 +86,7 @@ export default function App() {
         setRawResult(message.payload.result)
         setRawResultAction(message.payload.action)
         setError(null)
+        checkTemplateHealth()
         // Auto-save to history — determine type from action
         const historyType = message.payload.action === 'analyze-image' ? 'image' : 'text'
         autoSaveToHistory({
@@ -104,6 +105,7 @@ export default function App() {
         setCodeFormat(activeFmt)
         setVariationsData(null)
         setError(null)
+        checkTemplateHealth()
 
         // Automatically trigger code generation for the active session format
         chrome.runtime.sendMessage(
@@ -124,6 +126,7 @@ export default function App() {
       } else if (message.action === ACTIONS.CODE_READY) {
         setCodeResult(message.payload.code)
         setCodeFormat(message.payload.format)
+        checkTemplateHealth()
         // Update history entry with code
         if (historyId) {
           updateHistoryEntry(historyId, {
@@ -143,12 +146,13 @@ export default function App() {
         setLoading(false)
         setLoadingAction(null)
         setError(message.payload.error)
+        checkTemplateHealth()
       }
     }
 
     chrome.runtime.onMessage.addListener(listener)
     return () => chrome.runtime.onMessage.removeListener(listener)
-  }, [defaultFormat, historyId])
+  }, [defaultFormat, historyId, checkTemplateHealth])
 
   async function autoSaveToHistory(entry) {
     try {
@@ -286,11 +290,12 @@ export default function App() {
 
       {/* Template Safety Fallback Alert */}
       {failedTemplateIds.length > 0 && (
-        <div className="template-fallback-alert">
+        <div className="template-fallback-alert" role="alert">
           <div className="template-fallback-alert-content">
             <span className="template-fallback-icon">⚠️</span>
             <span className="template-fallback-text">
-              Custom template <strong>{DEFAULT_TEMPLATES[failedTemplateIds[0]]?.label || failedTemplateIds[0]}</strong> had repeated errors. Safe fallback active.
+              This custom prompt is producing errors — reset to default?
+              <span className="template-fallback-name"> ({DEFAULT_TEMPLATES[failedTemplateIds[0]]?.label || failedTemplateIds[0]})</span>
             </span>
           </div>
           <div className="template-fallback-alert-actions">
@@ -298,7 +303,7 @@ export default function App() {
               className="template-fallback-reset-btn"
               onClick={() => handleResetFailedTemplate(failedTemplateIds[0])}
             >
-              Reset to Default
+              Reset to default
             </button>
             <button
               className="template-fallback-dismiss-btn"

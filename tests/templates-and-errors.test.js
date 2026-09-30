@@ -130,3 +130,128 @@ test('error-classifier: classifies network, malformed response, and unknown erro
   assert.equal(unknownErr.actionType, 'retry')
 })
 
+test('template-validator: validateTemplateByType pulls required variables from config map', () => {
+  const { validateTemplateByType } = require('../src/lib/ai/template-validator.js')
+
+  // Text requires {{selection}}
+  const textInvalid = validateTemplateByType('text', 'Analyze this snippet without the variable.')
+  assert.equal(textInvalid.isValid, false)
+  assert.ok(textInvalid.errors.some((e) => e.includes('{{selection}}')))
+
+  const textValid = validateTemplateByType('text', 'Analyze this snippet: {{selection}} for design clarity.')
+  assert.equal(textValid.isValid, true)
+
+  // Codegen requires {{context}} or {{analysis}}
+  const codegenInvalid = validateTemplateByType('react-tailwind', 'Generate a React component with tailwind.')
+  assert.equal(codegenInvalid.isValid, false)
+  assert.ok(codegenInvalid.errors.some((e) => e.includes('{{context}}')))
+
+  const codegenValidContext = validateTemplateByType('react-tailwind', 'Generate a React component from {{context}}.')
+  assert.equal(codegenValidContext.isValid, true)
+
+  const codegenValidAnalysis = validateTemplateByType('react-tailwind', 'Generate a React component from {{analysis}}.')
+  assert.equal(codegenValidAnalysis.isValid, true)
+})
+
+test('prompt-templates: storage mock supports CRUD, versioned defaults, and fallback on failure', async () => {
+  const {
+    getTemplate,
+    getAllTemplates,
+    saveCustomTemplate,
+    resetTemplate,
+    recordTemplateFailure,
+    recordTemplateSuccess,
+    getFailedTemplates,
+    TEMPLATES_STORAGE_KEY,
+  } = require('../src/lib/storage/prompt-templates.js')
+
+  // Setup chrome.storage.local mock
+  const storageMap = {}
+  global.chrome = {
+    storage: {
+      local: {
+        get: (keys, cb) => {
+          const res = {}
+          for (const k of keys) {
+            if (storageMap[k] !== undefined) res[k] = storageMap[k]
+          }
+          cb(res)
+        },
+        set: (items, cb) => {
+          Object.assign(storageMap, items)
+          if (cb) cb()
+        },
+      },
+    },
+  }
+
+  // Initial read should return ship-time defaults
+  const tmpl = await getTemplate('text')
+  assert.equal(tmpl.type, 'text')
+  assert.equal(tmpl.isCustom, false)
+  assert.equal(tmpl.current, tmpl.default)
+  assert.ok(tmpl.default.includes('{{selection}}'))
+
+  // Validation blocks saving when missing required placeholders
+  const invalidSave = await saveCustomTemplate('text', 'Custom prompt without placeholder.')
+  assert.equal(invalidSave.success, false)
+  assert.ok(invalidSave.errors.length > 0)
+
+  // Valid save succeeds
+  const customPromptText = 'You are Pixly. Please explain {{selection}} in great detail.'
+  const validSave = await saveCustomTemplate('text', customPromptText)
+  assert.equal(validSave.success, true)
+
+  const updatedTmpl = await getTemplate('text')
+  assert.equal(updatedTmpl.isCustom, true)
+  assert.equal(updatedTmpl.current, customPromptText)
+  assert.equal(updatedTmpl.activePrompt, customPromptText)
+  assert.notEqual(updatedTmpl.current, updatedTmpl.default)
+
+  // Consecutive failures threshold (3) triggers fallback to default
+  await recordTemplateFailure('text')
+  let tmplAfter1Fail = await getTemplate('text')
+  assert.equal(tmplAfter1Fail.failureCount, 1)
+  assert.equal(tmplAfter1Fail.isFallbackActive, false)
+  assert.equal(tmplAfter1Fail.activePrompt, customPromptText)
+
+  await recordTemplateFailure('text')
+  await recordTemplateFailure('text')
+  let tmplAfter3Fails = await getTemplate('text')
+  assert.equal(tmplAfter3Fails.failureCount, 3)
+  assert.equal(tmplAfter3Fails.isFallbackActive, true)
+  // Safe fallback should return defaultPrompt as activePrompt
+  assert.equal(tmplAfter3Fails.activePrompt, tmplAfter3Fails.default)
+
+  const failedList = await getFailedTemplates()
+  assert.ok(failedList.includes('text'))
+
+  // Success resets failure count
+  await recordTemplateSuccess('text')
+  let tmplAfterSuccess = await getTemplate('text')
+  assert.equal(tmplAfterSuccess.failureCount, 0)
+  assert.equal(tmplAfterSuccess.isFallbackActive, false)
+
+  // Reset restores current to default
+  await resetTemplate('text')
+  const resetTmpl = await getTemplate('text')
+  assert.equal(resetTmpl.isCustom, false)
+  assert.equal(resetTmpl.current, resetTmpl.default)
+
+  // External corruption recovery test: if stored template fails validation, it falls back to default
+  storageMap[TEMPLATES_STORAGE_KEY] = {
+    version: 1,
+    templates: {
+      text: {
+        customPrompt: 'Corrupted external value without tags',
+        updatedAt: Date.now(),
+      },
+    },
+  }
+
+  const recoveredTmpl = await getTemplate('text')
+  assert.equal(recoveredTmpl.isCustom, false)
+  assert.equal(recoveredTmpl.activePrompt, recoveredTmpl.default)
+})
+
+
