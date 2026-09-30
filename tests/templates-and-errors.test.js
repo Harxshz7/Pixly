@@ -6,6 +6,7 @@ import assert from 'node:assert/strict'
 
 import {
   validateTemplate,
+  validateTemplateByType,
   interpolateTemplate,
   TEMPLATE_LIMITS,
 } from '../src/lib/ai/template-validator.js'
@@ -14,6 +15,14 @@ import {
   DEFAULT_TEMPLATES,
   TEMPLATE_CATEGORIES,
   CONSECUTIVE_FAILURE_THRESHOLD,
+  getTemplate,
+  getAllTemplates,
+  saveCustomTemplate,
+  resetTemplate,
+  recordTemplateFailure,
+  recordTemplateSuccess,
+  getFailedTemplates,
+  TEMPLATES_STORAGE_KEY,
 } from '../src/lib/storage/prompt-templates.js'
 
 import { classifyError } from '../src/lib/utils/error-classifier.js'
@@ -131,8 +140,6 @@ test('error-classifier: classifies network, malformed response, and unknown erro
 })
 
 test('template-validator: validateTemplateByType pulls required variables from config map', () => {
-  const { validateTemplateByType } = require('../src/lib/ai/template-validator.js')
-
   // Text requires {{selection}}
   const textInvalid = validateTemplateByType('text', 'Analyze this snippet without the variable.')
   assert.equal(textInvalid.isValid, false)
@@ -154,17 +161,6 @@ test('template-validator: validateTemplateByType pulls required variables from c
 })
 
 test('prompt-templates: storage mock supports CRUD, versioned defaults, and fallback on failure', async () => {
-  const {
-    getTemplate,
-    getAllTemplates,
-    saveCustomTemplate,
-    resetTemplate,
-    recordTemplateFailure,
-    recordTemplateSuccess,
-    getFailedTemplates,
-    TEMPLATES_STORAGE_KEY,
-  } = require('../src/lib/storage/prompt-templates.js')
-
   // Setup chrome.storage.local mock
   const storageMap = {}
   global.chrome = {
