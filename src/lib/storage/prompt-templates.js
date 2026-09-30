@@ -300,6 +300,7 @@ export async function getFailuresStore() {
 
 /**
  * Get a specific template by ID, including its active prompt and failure status.
+ * Automatically validates custom templates on load; if corrupted externally, falls back to default.
  *
  * @param {string} id - Template ID
  * @returns {Promise<object|null>}
@@ -314,19 +315,37 @@ export async function getTemplate(id) {
   ])
 
   const customEntry = customStore[id]
-  const isCustom = Boolean(customEntry && customEntry.customPrompt)
+  let isCustom = Boolean(customEntry && customEntry.customPrompt)
+  let customPrompt = customEntry?.customPrompt || null
+
+  // Validate on load in case storage was corrupted externally
+  if (isCustom && customPrompt) {
+    const validation = validateTemplate(customPrompt, base.requiredVariables)
+    if (!validation.isValid) {
+      console.warn(
+        `Stored custom prompt template for "${id}" failed validation (${validation.errors.join(', ')}). Falling back to default prompt.`
+      )
+      isCustom = false
+      customPrompt = null
+    }
+  }
+
   const failureCount = failuresStore[id] || 0
   const isFallbackActive = isCustom && failureCount >= CONSECUTIVE_FAILURE_THRESHOLD
 
+  const activePrompt = isFallbackActive
+    ? base.defaultPrompt
+    : (customPrompt || base.defaultPrompt)
+
   return {
     ...base,
+    type: base.id,
+    current: activePrompt,
+    default: base.defaultPrompt,
     isCustom,
     updatedAt: customEntry?.updatedAt || null,
-    customPrompt: customEntry?.customPrompt || null,
-    // When fallback is active due to >= 3 repeated failures, use defaultPrompt safely
-    activePrompt: isFallbackActive
-      ? base.defaultPrompt
-      : (customEntry?.customPrompt || base.defaultPrompt),
+    customPrompt,
+    activePrompt,
     failureCount,
     isFallbackActive,
   }
@@ -334,6 +353,7 @@ export async function getTemplate(id) {
 
 /**
  * Get all templates with their active state, custom status, and failure counts.
+ * Automatically validates custom templates on load; if corrupted externally, falls back to default.
  *
  * @returns {Promise<Array<object>>}
  */
@@ -345,18 +365,37 @@ export async function getAllTemplates() {
 
   return Object.values(DEFAULT_TEMPLATES).map((base) => {
     const customEntry = customStore[base.id]
-    const isCustom = Boolean(customEntry && customEntry.customPrompt)
+    let isCustom = Boolean(customEntry && customEntry.customPrompt)
+    let customPrompt = customEntry?.customPrompt || null
+
+    // Validate on load in case storage was corrupted externally
+    if (isCustom && customPrompt) {
+      const validation = validateTemplate(customPrompt, base.requiredVariables)
+      if (!validation.isValid) {
+        console.warn(
+          `Stored custom prompt template for "${base.id}" failed validation (${validation.errors.join(', ')}). Falling back to default prompt.`
+        )
+        isCustom = false
+        customPrompt = null
+      }
+    }
+
     const failureCount = failuresStore[base.id] || 0
     const isFallbackActive = isCustom && failureCount >= CONSECUTIVE_FAILURE_THRESHOLD
 
+    const activePrompt = isFallbackActive
+      ? base.defaultPrompt
+      : (customPrompt || base.defaultPrompt)
+
     return {
       ...base,
+      type: base.id,
+      current: activePrompt,
+      default: base.defaultPrompt,
       isCustom,
       updatedAt: customEntry?.updatedAt || null,
-      customPrompt: customEntry?.customPrompt || null,
-      activePrompt: isFallbackActive
-        ? base.defaultPrompt
-        : (customEntry?.customPrompt || base.defaultPrompt),
+      customPrompt,
+      activePrompt,
       failureCount,
       isFallbackActive,
     }

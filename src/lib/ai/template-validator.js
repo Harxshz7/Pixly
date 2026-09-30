@@ -8,6 +8,28 @@ export const TEMPLATE_LIMITS = {
 }
 
 /**
+ * Small config map defining required placeholder variables per analysis/template type.
+ */
+export const REQUIRED_VARIABLES_BY_TYPE = {
+  text: ['{{selection}}'],
+  image: ['{{image}}'],
+  'ui-analysis': ['{{image}}'],
+  'react-tailwind': ['{{context}}'],
+  'html-css': ['{{context}}'],
+  vue: ['{{context}}'],
+  flutter: ['{{context}}'],
+}
+
+/**
+ * Get required placeholder variables for a given template type.
+ * @param {string} type - Template/analysis type
+ * @returns {string[]} Array of required placeholder variables
+ */
+export function getRequiredVariables(type) {
+  return REQUIRED_VARIABLES_BY_TYPE[type] || []
+}
+
+/**
  * Validate a template prompt before saving.
  *
  * @param {string} promptText - The prompt text to validate
@@ -39,7 +61,12 @@ export function validateTemplate(promptText, requiredVariables = []) {
 
   // Validate required placeholder variables
   for (const variable of requiredVariables) {
-    if (!promptText.includes(variable)) {
+    // Support {{analysis}} as an alias for {{context}} in codegen templates
+    if (variable === '{{context}}') {
+      if (!promptText.includes('{{context}}') && !promptText.includes('{{analysis}}')) {
+        errors.push(`Missing required placeholder: {{context}} or {{analysis}}`)
+      }
+    } else if (!promptText.includes(variable)) {
       errors.push(`Missing required placeholder: ${variable}`)
     }
   }
@@ -54,6 +81,18 @@ export function validateTemplate(promptText, requiredVariables = []) {
     errors,
     warnings,
   }
+}
+
+/**
+ * Validate a template prompt using the required variables defined for its type.
+ *
+ * @param {string} type - Analysis/template type ID
+ * @param {string} promptText - The prompt text to validate
+ * @returns {{ isValid: boolean, errors: string[], warnings: string[] }}
+ */
+export function validateTemplateByType(type, promptText) {
+  const requiredVars = getRequiredVariables(type)
+  return validateTemplate(promptText, requiredVars)
 }
 
 /**
