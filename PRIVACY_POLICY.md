@@ -1,67 +1,102 @@
-# Privacy Policy for Pixly
+# Privacy Policy & Security Architecture Specification — Pixly
 
 **Effective Date:** October 1, 2026  
 **Extension Name:** Pixly — AI Design Analyst & Code Generator  
+**Architecture Model:** 100% Local-First / Zero-Telemetry / Bring-Your-Own-Key (BYOK)  
 **Public Policy URL:** https://raw.githubusercontent.com/Harxshz7/Pixly/main/PRIVACY_POLICY.md  
-**Repository & Support:** https://github.com/Harxshz7/Pixly/issues  
+**Security & Support Tracking:** https://github.com/Harxshz7/Pixly/issues  
 
 ---
 
-## 1. Overview & Commitment to Privacy
-Pixly is a developer and design utility built with a **100% local-first, zero-telemetry architecture**. We do not operate user accounts, cloud tracking servers, remote databases, or external analytics infrastructure. Pixly operates entirely under a **Bring Your Own Key (BYOK)** model where requests are dispatched directly from your browser to your chosen AI model provider (Anthropic or OpenAI).
+## 1. Executive Summary & Security Philosophy
+
+Pixly was designed by veteran software engineers adhering to the principle of **least privilege and zero external data residency**. Unlike conventional browser extensions that funnel user data through proprietary proxy servers, middleman analytics, or hosted AI gateways, Pixly establishes a **strict client-to-provider boundary**.
+
+- **Zero First-Party Telemetry:** Pixly operates no servers, no databases, no tracking pixels, and no remote error-logging endpoints.
+- **Direct-to-Provider Transport:** Network communication takes place exclusively between your local browser instance and the official API endpoints of your selected AI provider (Anthropic or OpenAI) using your personal API credentials.
+- **Client-Side Data Ownership:** All history, cached tokens, prompt customizations, and configuration state are stored solely within the local Chrome sandbox.
 
 ---
 
-## 2. Data Accessed by Pixly
-Pixly accesses only data that you explicitly choose to analyze:
-- **Selected Text:** Text that you highlight on a webpage and submit via the context menu ("Pixly: Explain selected text") or the floating explain action.
-- **Selected Images:** Image URLs or image bitmap data that you explicitly submit via the context menu ("Pixly: Analyze this image").
-- **Drawn Screen Regions:** The pixel area of the visible screen captured only when you trigger and draw a bounding box using the screen capture overlay (`Ctrl+Shift+X` / `Cmd+Shift+X`).
+## 2. Data Surface Matrix & Access Scopes
 
-> **Note:** Pixly does **not** perform background page scanning, passive DOM tracking, keylogging, or ambient screen recording. It accesses page content solely upon explicit user action.
+Pixly accesses data only upon explicit, asynchronous user interaction. It maintains no background listeners, ambient DOM scanners, or passive screen sniffers.
 
----
-
-## 3. Data Transmission (Where Your Data Goes)
-When you trigger an analysis or code generation request:
-1. **Direct AI Provider API Calls:** Pixly constructs a structured prompt combining the user-selected content (text, image, or screenshot snippet) and system prompt instructions. This payload is transmitted over encrypted HTTPS directly to:
-   - **Anthropic API:** `https://api.anthropic.com/v1/messages` (when configured to Claude models)
-   - **OpenAI API:** `https://api.openai.com/v1/chat/completions` (when configured to GPT models)
-2. **User API Key:** Your personal API key is sent directly in the HTTPS Authorization header to Anthropic or OpenAI. It is never transmitted through any proxy or intermediary server.
-3. **No Third-Party Transmission:** Pixly never transmits any data, analytics, crash logs, or metadata to Pixly developers or any other third parties.
+| Trigger Event | Data Accessed | Transmission Endpoint | Local Storage Persistence |
+|---|---|---|---|
+| **Text Selection Analysis** | User-highlighted text snippet | Sent directly to selected AI API (`api.anthropic.com` or `api.openai.com`) | Appended to `chrome.storage.local` history (unless cleared) |
+| **Image Element Analysis** | Right-clicked image data URL / URI | Sent directly to selected AI API | Appended to `chrome.storage.local` history |
+| **Draw-Box Screen Capture** | Hardware-accelerated screenshot bitmap of user-defined bounding box coordinates | Sent directly to selected AI API | Thumbnail and analysis saved locally to `chrome.storage.local` |
+| **Options Configuration** | User-entered API Key & Model selection | Never transmitted except as `Authorization` header on user-initiated calls | Stored in `chrome.storage.local` (encrypted within browser profile) |
+| **Prompt Template Customization** | System prompt definitions & template overrides | Transmitted only as system instruction context during AI calls | Stored in `chrome.storage.local` |
+| **Feature Usage Metrics** | Event counters (e.g., capture count, codegen count) | **NEVER TRANSMITTED OFF-DEVICE** | Local circular buffer in `chrome.storage.local` |
 
 ---
 
-## 4. Local Storage & Zero Remote Telemetry
-All user preferences, prompt templates, and history entries reside strictly within your browser's sandboxed local storage (`chrome.storage.local` and `sessionStorage`):
+## 3. Network Egress & Third-Party Integration
 
-- **API Keys & Settings (`pixly_api_key`, `pixly_ai_provider`, `pixly_ai_model`, `pixly_theme`, `pixly_default_format`):** Saved locally to persist your preferences.
-- **Analysis History & Favorites (`pixly_history`, `pixly_history_limit`):** Saved locally so you can review and export previous analyses and pinned favorites.
-- **Custom Prompt Templates (`pixly_prompt_templates`, `pixly_template_failures`):** Saved locally so you can customize analysis and codegen prompt templates.
-- **Local Event-Log Counters (`pixly_event_log`):** Pixly maintains a strictly local, in-browser rolling counter for basic feature usage diagnostics and failure recovery. **This local event log is 100% on-device and is NEVER transmitted over the network or shared with any telemetry/analytics backend.**
-- **Session Framework Selection (`pixly_session_code_format`):** Ephemeral tab state in `sessionStorage` for the active side panel view.
+The only outbound network requests generated by Pixly are direct HTTPS POST calls over TLS 1.3 to the following domains:
 
----
+1. **Anthropic API:** `https://api.anthropic.com/v1/messages` (When user configures Claude models)
+2. **OpenAI API:** `https://api.openai.com/v1/chat/completions` (When user configures GPT models)
 
-## 5. Data Retention & Deletion (User Control)
-You maintain total control over all data stored by Pixly:
-- **Clear History:** You can delete individual history items or clear your entire analysis history at any time using the "Clear History" button in the side panel.
-- **Remove API Keys:** You can modify or delete your stored API keys in the Pixly Settings panel.
-- **Uninstalling Pixly:** Removing Pixly from `chrome://extensions` immediately and permanently purges all local storage entries, keys, history records, and templates from your device.
+### Payload Inspection Guarantee:
+- Outbound payloads contain strictly: (a) system instructions/prompt templates, (b) the explicit user selection (text, image base64, or cropped screen region), and (c) the necessary AI model parameters (e.g., `temperature`, `max_tokens`).
+- **No device fingerprints, browser telemetry, visited URL histories, session cookies, or user profile identifiers are ever attached to outgoing payloads.**
 
 ---
 
-## 6. Permissions Justification
-Pixly requests minimal permissions necessary for its core functionality:
-- **`activeTab`:** Captures the visible screen area only when the user draws a selection box.
-- **`storage`:** Persists user settings, API keys, custom templates, and analysis history locally.
-- **`contextMenus`:** Adds right-click options to quickly analyze selected text and images.
-- **`sidePanel`:** Displays the analysis interface and code generation tools alongside your browser tab.
-- **`downloads`:** Allows exporting analysis reports and generated code as downloadable `.md` files.
-- **`host_permissions` (`api.anthropic.com`, `api.openai.com`):** Direct HTTPS communication with your chosen AI provider.
+## 4. Local Storage Engine & Lifecycle Management
+
+Pixly leverages Chrome's sandboxed storage infrastructure (`chrome.storage.local` and `sessionStorage`):
+
+```
++-----------------------------------------------------------------------+
+|                       Local Browser Sandbox                           |
+|                                                                       |
+|  [ Settings & Keys ]    [ History & AST Cache ]   [ Custom Prompts ]  |
+|  pixly_api_key          pixly_history             pixly_prompt_templates
+|  pixly_ai_provider      pixly_history_limit       pixly_template_failures
+|  pixly_ai_model         (FIFO with Pinned Lock)                       |
+|                                                                       |
+|  [ Local Diagnostics ]  [ Ephemeral Session State ]                   |
+|  pixly_event_log        pixly_session_code_format                     |
+|  (Zero Network Egress)  (Purged on tab closure)                       |
++-----------------------------------------------------------------------+
+```
+
+### Deterministic Eviction Policy:
+- History records adhere to a configurable FIFO buffer (default limit: 50 items).
+- Items marked as **Favorites** are explicitly locked and immune to automated FIFO pruning.
+- The **Local Event Log** is a fixed-length circular buffer designed strictly for client-side diagnostics and automated error recovery (e.g., detecting malformed templates).
 
 ---
 
-## 7. Contact & Support
-If you have questions, feedback, or security inquiries regarding Pixly or this Privacy Policy, please submit an issue on our GitHub repository:
-- **GitHub Issues:** [https://github.com/Harxshz7/Pixly/issues](https://github.com/Harxshz7/Pixly/issues)
+## 5. User Data Rights & Erasure Controls
+
+In full alignment with GDPR, CCPA, and Google Chrome Web Store Developer Policies, users retain unilateral control over their data:
+
+1. **Selective Item Deletion:** Any individual capture or code generation record can be permanently deleted with a single click in the side panel.
+2. **Full Storage Purge:** Clicking "Clear History" instantly truncates the entire local history datastore.
+3. **API Key Removal:** API keys can be modified or cleared at any moment in the Options dashboard.
+4. **Complete System Removal:** Uninstalling the Pixly extension via `chrome://extensions` immediately triggers Chrome's native sandbox destructor, permanently purging all local keys, templates, and history files from disk.
+
+---
+
+## 6. Manifest V3 Permissions Justification
+
+Pixly requests only the minimal set of capabilities required to fulfill its single core mission:
+
+- **`activeTab`:** Temporarily accesses the active viewport bitmap strictly when the user executes a draw-box capture command.
+- **`storage`:** Persists configuration, API credentials, custom templates, and analysis history within the local profile.
+- **`contextMenus`:** Registers right-click menu items for contextual text and image dispatch.
+- **`sidePanel`:** Hosts the persistent workbench, token inspector, and code generation UI in Chrome's native side panel.
+- **`downloads`:** Facilitates client-side blob export of analysis reports and generated code to local Markdown (`.md`) files.
+- **`host_permissions` (`https://api.anthropic.com/*`, `https://api.openai.com/*`):** Permits direct client-to-API network egress to the user-selected AI backend.
+
+---
+
+## 7. Contact, Governance & Security Disclosures
+
+For vulnerability disclosures, architectural inquiries, or technical support, please contact the maintainers via the public GitHub issue tracker:
+- **Security & Support:** [https://github.com/Harxshz7/Pixly/issues](https://github.com/Harxshz7/Pixly/issues)
